@@ -9,6 +9,11 @@ __pycache__/
 ~$*.xlsx
 ~$*.xls
 
+# Excel files (input and output)
+*.xlsx
+*.xls
+# But allow git to track .gitignore itself
+
 # Output files (can be regenerated)
 final_merged_list.xlsx
 products_long.xlsx
