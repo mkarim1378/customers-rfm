@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+
+# Output files (can be regenerated)
+final_merged_list.xlsx
+products_long.xlsx
+orders_processed.xlsx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
