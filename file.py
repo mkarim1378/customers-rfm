@@ -3,34 +3,56 @@ import pandas as pd
 target_sales_experts = ['بابایی', 'احمدی', 'هارونی', 'محمدی']
 
 def clean_phone_number(phone_value):
-    # Normalize phone numbers: keep 11 digits for Iranian mobile numbers (starting with 09)
-    # If number has 10 digits starting with 9, add 0 at the beginning
+    # Normalize phone numbers: return 10 digits starting with 9 (remove leading 0 if exists)
+    # Iranian mobile numbers must start with 9
     if pd.isna(phone_value):
         return None
     phone_str = str(phone_value)
     digits_only = ''.join(filter(str.isdigit, phone_str))
     if len(digits_only) < 10:
         return None
-    # If number has 10 digits and starts with 9, add 0 at the beginning (Iranian mobile format)
-    if len(digits_only) == 10 and digits_only[0] == '9':
-        return '0' + digits_only
-    # If number has 11 digits and starts with 0, keep all 11 digits
+    
+    # If number has 11 digits and starts with 0, remove the 0 to get 10 digits starting with 9
     if len(digits_only) == 11 and digits_only[0] == '0':
+        result = digits_only[1:]  # Remove first digit (0) to get 10 digits
+        if result[0] == '9':  # Verify it starts with 9
+            return result
+    
+    # If number has 10 digits and starts with 9, return as is
+    if len(digits_only) == 10 and digits_only[0] == '9':
         return digits_only
+    
     # If number has more than 11 digits, try to find the correct mobile number
     if len(digits_only) > 11:
         # Try to find 11-digit number starting with 0
         last_11 = digits_only[-11:]
-        if last_11[0] == '0':
-            return last_11
+        if last_11[0] == '0' and last_11[1] == '9':
+            return last_11[1:]  # Remove first digit (0) to get 10 digits starting with 9
         # Try to find 10-digit number starting with 9
         last_10 = digits_only[-10:]
         if last_10[0] == '9':
-            return '0' + last_10
-        # Otherwise take last 10 digits
-        return digits_only[-10:]
-    # For other cases, take last 10 digits
-    return digits_only[-10:]
+            return last_10
+        # Try to find 10-digit number starting with 9 from different positions
+        for i in range(len(digits_only) - 9):
+            candidate = digits_only[i:i+10]
+            if candidate[0] == '9':
+                return candidate
+    
+    # If number has 10 digits but doesn't start with 9, try to find a valid mobile number
+    if len(digits_only) == 10:
+        if digits_only[0] == '9':
+            return digits_only
+        # If it doesn't start with 9, it might be missing the leading 9
+        # But we can't add it, so return None or the original
+        return None
+    
+    # For other cases, try to find a 10-digit number starting with 9
+    for i in range(len(digits_only) - 9):
+        candidate = digits_only[i:i+10]
+        if candidate[0] == '9':
+            return candidate
+    
+    return None
 
 def agg_description(series):
     non_null_series = series.dropna()
@@ -149,9 +171,31 @@ if 'products' in cols_order:
 	cols_order = [c for c in cols_order if c != 'products'] + ['products']
 	final_df = final_df[cols_order]
 
-# Remove product columns from output (keep only 'products' column with readable names)
-columns_to_drop = [col for col in product_cols if col in final_df.columns]
-final_df = final_df.drop(columns=columns_to_drop)
+# Keep product columns in output for matrix formation (do not drop them)
+# columns_to_drop = [col for col in product_cols if col in final_df.columns]
+# final_df = final_df.drop(columns=columns_to_drop)
+
+# Ensure phone numbers are in 10-digit format (starting with 9) in output
+def format_phone_10_digits(phone):
+    if pd.isna(phone):
+        return phone
+    phone_str = str(phone)
+    digits_only = ''.join(filter(str.isdigit, phone_str))
+    # Must be 10 digits starting with 9
+    if len(digits_only) == 11 and digits_only[0] == '0' and digits_only[1] == '9':
+        return digits_only[1:]  # Remove leading 0 to get 10 digits starting with 9
+    if len(digits_only) == 10 and digits_only[0] == '9':
+        return digits_only
+    # If it's 10 digits but doesn't start with 9, it's invalid - try to find valid number
+    if len(digits_only) >= 10:
+        # Try to find 10-digit number starting with 9
+        for i in range(len(digits_only) - 9):
+            candidate = digits_only[i:i+10]
+            if candidate[0] == '9':
+                return candidate
+    return phone_str
+
+final_df['numberr'] = final_df['numberr'].apply(format_phone_10_digits)
 
 final_df.to_excel('final_merged_list.xlsx', index=False)
 print("\n'final_merged_list.xlsx' successfully created!")
