@@ -73,15 +73,32 @@ def main(page: ft.Page):
         page.views.clear()
         
         if page.route == "/results" and processed_data_store[0] is not None:
-            page.views.append(
-                ft.View(
-                    route="/results",
-                    controls=[
-                        create_results_page(page, processed_data_store[0]),
-                    ],
-                    padding=0,
+            try:
+                results_page_content = create_results_page(page, processed_data_store[0])
+                page.views.append(
+                    ft.View(
+                        route="/results",
+                        controls=[
+                            results_page_content,
+                        ],
+                        padding=0,
+                        expand=True,
+                    )
                 )
-            )
+            except Exception as e:
+                print(f"Error creating results page in route_change: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback to file selection page
+                page.views.append(
+                    ft.View(
+                        route="/",
+                        controls=[
+                            create_file_selection_page(page, navigate_to_results),
+                        ],
+                        padding=20,
+                    )
+                )
         else:
             # Default to file selection page
             page.views.append(
