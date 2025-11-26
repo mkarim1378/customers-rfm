@@ -23,6 +23,9 @@ def create_results_page(page: ft.Page, processed_data: pd.DataFrame):
         rows=[],
     )
     
+    # Pagination info (must be defined before update_table)
+    pagination_info = ft.Text("", size=12, color=ft.Colors.GREY_600)
+    
     def update_table():
         """Update table based on current page and rows per page"""
         data_table.rows = []
@@ -102,8 +105,6 @@ def create_results_page(page: ft.Page, processed_data: pd.DataFrame):
     )
     
     # Pagination controls
-    pagination_info = ft.Text("", size=12, color=ft.Colors.GREY_600)
-    
     rows_per_page_dropdown = ft.Dropdown(
         width=100,
         options=[

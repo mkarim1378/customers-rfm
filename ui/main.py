@@ -49,17 +49,24 @@ def main(page: ft.Page):
         processed_data_store[0] = processed_data
         # Update views and navigate
         page.views.clear()
-        page.views.append(
-            ft.View(
-                route="/results",
-                controls=[
-                    create_results_page(page, processed_data),
-                ],
-                padding=0,
+        try:
+            results_page_content = create_results_page(page, processed_data)
+            page.views.append(
+                ft.View(
+                    route="/results",
+                    controls=[
+                        results_page_content,
+                    ],
+                    padding=0,
+                    expand=True,
+                )
             )
-        )
-        page.route = "/results"
-        page.update()
+            page.route = "/results"
+            page.update()
+        except Exception as e:
+            print(f"Error creating results page: {e}")
+            import traceback
+            traceback.print_exc()
     
     def route_change(route):
         """Handle route changes"""
