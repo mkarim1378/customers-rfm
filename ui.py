@@ -277,8 +277,8 @@ def main(page: ft.Page):
     page.overlay.append(file_picker)
     page.overlay.append(save_file_picker)
     
-    # Drag and drop area (clickable container)
-    drag_drop_container = ft.Container(
+    # Drag and drop area (clickable container with drag target)
+    drag_drop_content = ft.Container(
         width=500,
         height=300,
         border=ft.border.all(2, ft.Colors.GREY_400),
@@ -300,15 +300,38 @@ def main(page: ft.Page):
     
     def on_hover_drag_box(e):
         if e.data == "true":
-            drag_drop_container.border = ft.border.all(3, ft.Colors.BLUE_400)
-            drag_drop_container.bgcolor = ft.Colors.BLUE_50
+            drag_drop_content.border = ft.border.all(3, ft.Colors.BLUE_400)
+            drag_drop_content.bgcolor = ft.Colors.BLUE_50
         else:
             if selected_file_path is None:
-                drag_drop_container.border = ft.border.all(2, ft.Colors.GREY_400)
-                drag_drop_container.bgcolor = ft.Colors.GREY_50
+                drag_drop_content.border = ft.border.all(2, ft.Colors.GREY_400)
+                drag_drop_content.bgcolor = ft.Colors.GREY_50
         page.update()
     
-    drag_drop_container.on_hover = on_hover_drag_box
+    drag_drop_content.on_hover = on_hover_drag_box
+    
+    # Use DragTarget to handle file drops
+    # Note: Flet doesn't natively support file drag-and-drop from OS,
+    # but we can use DragTarget with on_accept for internal drag operations
+    # For OS file drag-and-drop, we'll need to use a workaround
+    drag_drop_container = drag_drop_content
+    
+    # Add file picker that accepts drops when dialog is open
+    # For native OS drag-and-drop, we need to handle it differently
+    def handle_file_drop_from_os(file_path):
+        """Handle file dropped from OS file system"""
+        if file_path and os.path.exists(file_path):
+            # Check if it's an Excel file
+            if file_path.lower().endswith(('.xlsx', '.xls')):
+                handle_file_selection(file_path)
+            else:
+                status_text.value = "Please drop an Excel file (.xlsx or .xls) 📄"
+                status_text.color = ft.Colors.RED_700
+                page.update()
+    
+    # Note: Native OS file drag-and-drop requires platform-specific handling
+    # Flet's DragTarget only works for internal drag operations
+    # For now, users need to use click-to-browse functionality
     
     # File info display
     file_info_container = ft.Container(
@@ -401,7 +424,7 @@ def main(page: ft.Page):
         file_size = get_file_size(selected_file_path)
         
         # Update drag drop container to show file info
-        drag_drop_container.content.controls = [
+        drag_drop_content.content.controls = [
             ft.Icon(ft.Icons.CHECK_CIRCLE, size=64, color=ft.Colors.GREEN_500),
             ft.Text(f"File loaded! ✨", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_700),
             ft.Text(f"{file_name}", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
