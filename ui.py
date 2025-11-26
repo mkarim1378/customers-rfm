@@ -244,18 +244,17 @@ def main(page: ft.Page):
     page.padding = 20
     page.theme_mode = ft.ThemeMode.LIGHT
     
-    # Set window icon and logo (try different possible names)
+    # Set window icon and logo (simple approach)
     base_dir = os.path.dirname(os.path.abspath(__file__))
     icon_path = None
     logo_path = None
-    possible_logo_names = ["myicon.ico", "icon.ico", "logo.png", "logo.jpg", "logo.ico", "icon.png"]
-    for logo_name in possible_logo_names:
-        test_path = os.path.join(base_dir, logo_name)
+    
+    # Try myicon.ico first, then icon.ico
+    for icon_name in ["myicon.ico", "icon.ico"]:
+        test_path = os.path.join(base_dir, icon_name)
         if os.path.exists(test_path):
-            if logo_name.endswith('.ico'):
-                icon_path = test_path
-            if not logo_path:  # Use first found as logo
-                logo_path = test_path
+            icon_path = test_path
+            logo_path = test_path
             break
     
     # Set window icon
@@ -310,24 +309,42 @@ def main(page: ft.Page):
     
     drag_drop_content.on_hover = on_hover_drag_box
     
-    # Use DragTarget to handle file drops
-    # Note: Flet doesn't natively support file drag-and-drop from OS,
-    # but we can use DragTarget with on_accept for internal drag operations
-    # For OS file drag-and-drop, we'll need to use a workaround
-    drag_drop_container = drag_drop_content
+    # For drag and drop, we'll use a transparent overlay that covers the entire page
+    # This will catch file drops from the OS
+    drag_overlay = ft.Container(
+        expand=True,
+        bgcolor=ft.Colors.TRANSPARENT,
+        visible=False,
+        content=ft.Container(),
+    )
     
-    # Add file picker that accepts drops when dialog is open
-    # For native OS drag-and-drop, we need to handle it differently
-    def handle_file_drop_from_os(file_path):
-        """Handle file dropped from OS file system"""
-        if file_path and os.path.exists(file_path):
-            # Check if it's an Excel file
-            if file_path.lower().endswith(('.xlsx', '.xls')):
-                handle_file_selection(file_path)
-            else:
-                status_text.value = "Please drop an Excel file (.xlsx or .xls) 📄"
-                status_text.color = ft.Colors.RED_700
-                page.update()
+    def on_drag_enter(e):
+        drag_overlay.visible = True
+        drag_drop_content.border = ft.border.all(3, ft.Colors.GREEN_400)
+        drag_drop_content.bgcolor = ft.Colors.GREEN_50
+        page.update()
+    
+    def on_drag_leave(e):
+        drag_overlay.visible = False
+        if selected_file_path is None:
+            drag_drop_content.border = ft.border.all(2, ft.Colors.GREY_400)
+            drag_drop_content.bgcolor = ft.Colors.GREY_50
+        page.update()
+    
+    def on_drop(e):
+        drag_overlay.visible = False
+        if selected_file_path is None:
+            drag_drop_content.border = ft.border.all(2, ft.Colors.GREY_400)
+            drag_drop_content.bgcolor = ft.Colors.GREY_50
+        # Note: Flet doesn't support OS file drag-and-drop directly
+        # Users need to use click-to-browse
+        page.update()
+    
+    drag_drop_content.on_drag_enter = on_drag_enter
+    drag_drop_content.on_drag_leave = on_drag_leave
+    drag_drop_content.on_drop = on_drop
+    
+    drag_drop_container = drag_drop_content
     
     # Note: Native OS file drag-and-drop requires platform-specific handling
     # Flet's DragTarget only works for internal drag operations
@@ -430,8 +447,8 @@ def main(page: ft.Page):
             ft.Text(f"{file_name}", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
             ft.Text(f"Size: {file_size}", size=12, color=ft.Colors.GREY_600),
         ]
-        drag_drop_container.border = ft.border.all(2, ft.Colors.GREEN_400)
-        drag_drop_container.bgcolor = ft.Colors.GREEN_50
+        drag_drop_content.border = ft.border.all(2, ft.Colors.GREEN_400)
+        drag_drop_content.bgcolor = ft.Colors.GREEN_50
         
         status_text.value = "Great! Processing your file now... ⚡"
         status_text.color = ft.Colors.BLUE_700
