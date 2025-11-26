@@ -47,6 +47,7 @@ def main(page: ft.Page):
     def navigate_to_results(processed_data):
         """Navigate to results page"""
         processed_data_store[0] = processed_data
+        # Update views and navigate
         page.views.clear()
         page.views.append(
             ft.View(
@@ -57,7 +58,8 @@ def main(page: ft.Page):
                 padding=0,
             )
         )
-        page.go("/results")
+        page.route = "/results"
+        page.update()
     
     def route_change(route):
         """Handle route changes"""

@@ -117,7 +117,7 @@ def create_file_selection_page(page: ft.Page, navigate_to_results):
                 )
                 
                 # Navigate to results page after processing
-                # Call directly - page.update() and navigation are thread-safe in Flet
+                # Call directly - Flet handles thread safety for page operations
                 navigate_to_results(processed_data)
                 
             except Exception as ex:
