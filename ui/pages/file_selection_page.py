@@ -5,6 +5,7 @@ import flet as ft
 import os
 import sys
 import threading
+import asyncio
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -123,8 +124,12 @@ def create_file_selection_page(page: ft.Page, navigate_to_results):
                 status_text.color = ft.Colors.GREEN_700
                 page.update()
                 
-                # Navigate to results page
-                navigate_to_results(processed_data)
+                # Navigate to results page - must be called from main thread
+                # Use async wrapper for page.run_task
+                async def navigate_async():
+                    navigate_to_results(processed_data)
+                
+                page.run_task(navigate_async)
                 
             except Exception as ex:
                 show_error(str(ex))
