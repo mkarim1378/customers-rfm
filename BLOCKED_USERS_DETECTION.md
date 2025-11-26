@@ -10,8 +10,9 @@
 > **⚠️ مهم**: این دو کتابخانه **نمی‌توانند همزمان** در یک پروژه استفاده شوند. یکی را انتخاب کنید و کد مربوط به همان را استفاده کنید.
 
 ### تفاوت‌ها:
-- `aiogram`: سریع‌تر، مدرن‌تر، async محور
-- `python-telegram-bot`: پایدارتر، مستندات بیشتر، جامعه بزرگتر
+
+-   `aiogram`: سریع‌تر، مدرن‌تر، async محور
+-   `python-telegram-bot`: پایدارتر، مستندات بیشتر، جامعه بزرگتر
 
 ---
 
@@ -145,7 +146,7 @@ async def broadcast_message_with_block_detection(
     blocked_count = 0
     failed_count = 0
     blocked_users = []
-    
+
     for user_id in users_list:
         try:
             # ارسال پیام به کاربر
@@ -153,26 +154,26 @@ async def broadcast_message_with_block_detection(
                 chat_id=user_id,
                 text=message_text
             )
-            
+
             # موفق بود = کاربر فعال است
             success_count += 1
             await update_user_status(user_id, 'active', message_sent=True)
-            
+
         except Forbidden:
             # کاربر ربات را بلاک کرده
             blocked_count += 1
             blocked_users.append(user_id)
             await update_user_status(user_id, 'blocked', block_detected=True)
-        
+
         except Unauthorized:
             # کاربر ربات را بلاک کرده یا غیرفعال شده
             blocked_count += 1
             blocked_users.append(user_id)
             await update_user_status(user_id, 'blocked', block_detected=True)
-        
+
         except BadRequest as e:
             error_msg = str(e).lower()
-            
+
             # تشخیص بلاک شدن از خطاهای BadRequest
             if any(keyword in error_msg for keyword in [
                 'chat not found',
@@ -187,20 +188,20 @@ async def broadcast_message_with_block_detection(
                 # خطای دیگر
                 failed_count += 1
                 print(f"خطا برای کاربر {user_id}: {e}")
-        
+
         except TelegramError as e:
             # خطای عمومی تلگرام
             failed_count += 1
             print(f"خطای تلگرام برای کاربر {user_id}: {e}")
-        
+
         except Exception as e:
             # خطای غیرمنتظره
             failed_count += 1
             print(f"خطای غیرمنتظره برای کاربر {user_id}: {e}")
-        
+
         # تاخیر برای جلوگیری از Rate Limit
         await asyncio.sleep(delay)
-    
+
     # گزارش نهایی
     return {
         'total': len(users_list),
@@ -212,6 +213,7 @@ async def broadcast_message_with_block_detection(
 ```
 
 > **نکته**: در `python-telegram-bot` نسخه 20.x از `context.bot` استفاده می‌شود:
+>
 > ```python
 > await context.bot.send_message(chat_id=user_id, text=message_text)
 > ```

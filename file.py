@@ -197,6 +197,11 @@ def format_phone_10_digits(phone):
 
 final_df['numberr'] = final_df['numberr'].apply(format_phone_10_digits)
 
+# Convert 0 values to empty (NaN) in product columns - only keep 1 values
+for col in product_cols:
+    if col in final_df.columns:
+        final_df[col] = final_df[col].replace(0, None)
+
 final_df.to_excel('final_merged_list.xlsx', index=False)
 print("\n'final_merged_list.xlsx' successfully created!")
 

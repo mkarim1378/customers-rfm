@@ -12,6 +12,7 @@ __pycache__/
 # Excel files (input and output)
 *.xlsx
 *.xls
+*.csv
 # But allow git to track .gitignore itself
 
 # Output files (can be regenerated)
