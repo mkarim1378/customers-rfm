@@ -124,19 +124,12 @@ def create_file_selection_page(page: ft.Page, navigate_to_results):
                 status_text.color = ft.Colors.GREEN_700
                 page.update()
                 
-                # Navigate to results page - must be called from main thread
-                # Use async wrapper for page.run_task
-                async def navigate_async():
-                    navigate_to_results(processed_data)
-                
-                page.run_task(navigate_async)
+                # Navigate to results page - call directly (page.update is thread-safe)
+                navigate_to_results(processed_data)
                 
             except Exception as ex:
                 error_msg = str(ex)
-                # Show error on main thread using async wrapper
-                async def show_error_async():
-                    show_error(error_msg)
-                page.run_task(show_error_async)
+                show_error(error_msg)
         
         def show_error(error_msg):
             loading_spinner.visible = False
