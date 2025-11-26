@@ -376,13 +376,13 @@ def main(page: ft.Page):
     
     select_btn = ft.ElevatedButton(
         "Select File",
-        icon=ft.icons.FOLDER_OPEN,
+        icon=ft.Icons.FOLDER_OPEN,
         on_click=select_file,
     )
     
     process_btn = ft.ElevatedButton(
         "Process",
-        icon=ft.icons.PLAY_ARROW,
+        icon=ft.Icons.PLAY_ARROW,
         on_click=process_file,
     )
     
