@@ -3,9 +3,14 @@ UI Event Handlers module.
 Contains all event handler functions for UI interactions.
 """
 import os
+import sys
 import threading
 import flet as ft
-from data_processing import process_customer_list
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from processing.data_processing import process_customer_list
 
 def create_file_selection_handler(selected_file_path_ref, file_info_ref, drag_drop_content, 
                                   status_text, loading_spinner, start_processing_func, 
