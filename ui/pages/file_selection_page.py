@@ -117,7 +117,15 @@ def create_file_selection_page(page: ft.Page, navigate_to_results):
                 )
                 
                 # Navigate to results page after processing
-                # Call directly - Flet handles thread safety for page operations
+                # Must update UI on main thread - use page.update() callback
+                loading_spinner.visible = False
+                status_text.value = f"Processing completed! Navigating to results... 🎉"
+                status_text.color = ft.Colors.GREEN_700
+                page.update()
+                
+                # Navigate after a short delay to ensure UI is updated
+                import time
+                time.sleep(0.1)  # Small delay to ensure UI update
                 navigate_to_results(processed_data)
                 
             except Exception as ex:
