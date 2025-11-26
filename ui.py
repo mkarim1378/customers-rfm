@@ -260,6 +260,7 @@ def main(page: ft.Page):
     # Data table
     data_table = ft.DataTable(
         columns=[
+            ft.DataColumn(ft.Text("#")),
             ft.DataColumn(ft.Text("Phone")),
             ft.DataColumn(ft.Text("Name")),
             ft.DataColumn(ft.Text("Sales Expert")),
@@ -337,6 +338,7 @@ def main(page: ft.Page):
             data_table.rows = []
             
             # Add rows from processed data
+            row_number = 1
             for idx, row in processed_data.iterrows():
                 phone = str(row.get('numberr', ''))
                 name = str(row.get('name', ''))
@@ -346,6 +348,7 @@ def main(page: ft.Page):
                 data_table.rows.append(
                     ft.DataRow(
                         cells=[
+                            ft.DataCell(ft.Text(str(row_number))),
                             ft.DataCell(ft.Text(phone)),
                             ft.DataCell(ft.Text(name)),
                             ft.DataCell(ft.Text(sp)),
@@ -353,6 +356,7 @@ def main(page: ft.Page):
                         ]
                     )
                 )
+                row_number += 1
             
             # Re-enable buttons and hide progress
             process_btn.disabled = False
