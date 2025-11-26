@@ -76,6 +76,7 @@ def create_results_page(page: ft.Page, processed_data: pd.DataFrame):
     sidebar = ft.Container(
         width=250,
         bgcolor=ft.Colors.GREY_100,
+        padding=15,
         content=ft.Column(
             controls=[
                 ft.Text("Filters", size=18, weight=ft.FontWeight.BOLD),
@@ -84,7 +85,6 @@ def create_results_page(page: ft.Page, processed_data: pd.DataFrame):
                 ft.Text("(To be implemented)", size=12, color=ft.Colors.GREY_500, italic=True),
             ],
             spacing=10,
-            padding=15,
         ),
     )
     
