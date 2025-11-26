@@ -242,7 +242,7 @@ def main(page: ft.Page):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     icon_path = None
     logo_path = None
-    possible_logo_names = ["icon.ico", "logo.png", "logo.jpg", "logo.ico", "icon.png"]
+    possible_logo_names = ["myicon.ico", "icon.ico", "logo.png", "logo.jpg", "logo.ico", "icon.png"]
     for logo_name in possible_logo_names:
         test_path = os.path.join(base_dir, logo_name)
         if os.path.exists(test_path):
@@ -256,8 +256,8 @@ def main(page: ft.Page):
     if icon_path:
         try:
             page.window.icon = icon_path
-        except:
-            pass
+        except Exception as e:
+            print(f"Error setting window icon: {e}")
     
     # State variables
     selected_file_path = None
