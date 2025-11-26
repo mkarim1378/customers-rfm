@@ -323,6 +323,7 @@ def main(page: ft.Page):
         # Disable process button and show progress
         process_btn.disabled = True
         select_btn.disabled = True
+        export_btn.disabled = True
         progress_bar.visible = True
         status_text.value = "Processing..."
         status_text.color = ft.Colors.BLUE_700
@@ -376,6 +377,7 @@ def main(page: ft.Page):
             # Re-enable buttons and hide progress
             process_btn.disabled = False
             select_btn.disabled = False
+            export_btn.disabled = False
             progress_bar.visible = False
             status_text.value = f"Processing completed! {len(processed_data)} customers processed."
             status_text.color = ft.Colors.GREEN_700
@@ -384,6 +386,7 @@ def main(page: ft.Page):
         def show_error(error_msg):
             process_btn.disabled = False
             select_btn.disabled = False
+            export_btn.disabled = True
             progress_bar.visible = False
             status_text.value = f"Error: {error_msg}"
             status_text.color = ft.Colors.RED_700
@@ -440,6 +443,7 @@ def main(page: ft.Page):
         "Export",
         icon=ft.Icons.DOWNLOAD,
         on_click=export_file,
+        disabled=True,
     )
     
     # Layout
