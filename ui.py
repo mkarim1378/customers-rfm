@@ -231,7 +231,7 @@ def process_customer_list(file_path, progress_callback=None, status_callback=Non
     return final_df
 
 def main(page: ft.Page):
-    page.title = "Customer List Processor"
+    page.title = "Carno Academy Super RFM"
     page.window.width = page.window.max_width
     page.window.height = page.window.max_height
     page.window.maximized = True
@@ -242,6 +242,15 @@ def main(page: ft.Page):
     icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
     if os.path.exists(icon_path):
         page.window.icon = icon_path
+    
+    # Logo image (try different possible names)
+    logo_path = None
+    possible_logo_names = ["icon.ico", "logo.png", "logo.jpg", "logo.ico", "icon.png"]
+    for logo_name in possible_logo_names:
+        test_path = os.path.join(os.path.dirname(__file__), logo_name)
+        if os.path.exists(test_path):
+            logo_path = test_path
+            break
     
     # State variables
     selected_file_path = None
@@ -306,6 +315,19 @@ def main(page: ft.Page):
     )
     
     status_text = ft.Text("Ready to process! 🚀", size=16, color=ft.Colors.BLUE_700, weight=ft.FontWeight.W_500)
+    
+    # Logo
+    logo_image = None
+    if logo_path:
+        try:
+            logo_image = ft.Image(
+                src=logo_path,
+                width=120,
+                height=120,
+                fit=ft.ImageFit.CONTAIN,
+            )
+        except:
+            logo_image = None
     
     # Data table
     data_table = ft.DataTable(
@@ -516,9 +538,16 @@ def main(page: ft.Page):
     page.add(
         ft.Column(
             controls=[
+                # Logo
+                ft.Row(
+                    controls=[logo_image] if logo_image else [],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ) if logo_image else ft.Container(height=0),
+                ft.Divider(height=20, color=ft.Colors.TRANSPARENT) if logo_image else ft.Divider(height=0, color=ft.Colors.TRANSPARENT),
+                # App Title
                 ft.Row(
                     controls=[
-                        ft.Text("Customer List Processor", size=28, weight=ft.FontWeight.BOLD),
+                        ft.Text("Carno Academy Super RFM", size=28, weight=ft.FontWeight.BOLD),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                 ),
