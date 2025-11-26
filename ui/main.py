@@ -89,9 +89,6 @@ def main(page: ft.Page):
         
         page.update()
     
-    # Set initial route handler
-    page.on_route_change = route_change
-    
     def view_pop(view):
         """Handle back navigation"""
         page.views.pop()
@@ -102,7 +99,7 @@ def main(page: ft.Page):
     page.on_view_pop = view_pop
     
     # Initialize with file selection page
-    page.go("/")
+    route_change("/")
 
 if __name__ == "__main__":
     ft.app(target=main)
