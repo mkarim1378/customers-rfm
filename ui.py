@@ -2,6 +2,8 @@ import flet as ft
 import pandas as pd
 import os
 import threading
+import base64
+from PIL import Image
 
 target_sales_experts = ['بابایی', 'احمدی', 'هارونی', 'محمدی']
 
@@ -327,14 +329,33 @@ def main(page: ft.Page):
     logo_image = None
     if logo_path:
         try:
-            # Use absolute path for image
             abs_logo_path = os.path.abspath(logo_path)
-            logo_image = ft.Image(
-                src=abs_logo_path,
-                width=120,
-                height=120,
-                fit=ft.ImageFit.CONTAIN,
-            )
+            # If it's an ICO file, convert it to base64 for display
+            if abs_logo_path.lower().endswith('.ico'):
+                # Open ICO file and convert to PNG bytes
+                img = Image.open(abs_logo_path)
+                # Resize to a reasonable size for display
+                img = img.resize((120, 120), Image.Resampling.LANCZOS)
+                # Convert to base64
+                import io
+                buffer = io.BytesIO()
+                img.save(buffer, format='PNG')
+                img_bytes = buffer.getvalue()
+                img_base64 = base64.b64encode(img_bytes).decode()
+                logo_image = ft.Image(
+                    src_base64=img_base64,
+                    width=120,
+                    height=120,
+                    fit=ft.ImageFit.CONTAIN,
+                )
+            else:
+                # For other formats, use direct path
+                logo_image = ft.Image(
+                    src=abs_logo_path,
+                    width=120,
+                    height=120,
+                    fit=ft.ImageFit.CONTAIN,
+                )
         except Exception as e:
             print(f"Error loading logo: {e}")
             logo_image = None
