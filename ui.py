@@ -3,7 +3,11 @@ import pandas as pd
 import os
 import threading
 import base64
-from PIL import Image
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 target_sales_experts = ['بابایی', 'احمدی', 'هارونی', 'محمدی']
 
@@ -331,7 +335,7 @@ def main(page: ft.Page):
         try:
             abs_logo_path = os.path.abspath(logo_path)
             # If it's an ICO file, convert it to base64 for display
-            if abs_logo_path.lower().endswith('.ico'):
+            if abs_logo_path.lower().endswith('.ico') and PIL_AVAILABLE:
                 # Open ICO file and convert to PNG bytes
                 img = Image.open(abs_logo_path)
                 # Resize to a reasonable size for display
@@ -349,7 +353,7 @@ def main(page: ft.Page):
                     fit=ft.ImageFit.CONTAIN,
                 )
             else:
-                # For other formats, use direct path
+                # For other formats or if PIL not available, use direct path
                 logo_image = ft.Image(
                     src=abs_logo_path,
                     width=120,
