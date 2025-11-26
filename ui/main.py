@@ -4,9 +4,14 @@ This module orchestrates the UI components and handlers.
 """
 import flet as ft
 import os
+import sys
 import threading
-from data_processing import process_customer_list
-from ui_components import (
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from processing.data_processing import process_customer_list
+from ui.components import (
     create_file_upload_container,
     create_logo_image,
     create_data_table,
@@ -16,7 +21,7 @@ from ui_components import (
     get_file_size,
     update_file_upload_container,
 )
-from ui_handlers import STATUS_MESSAGES
+from ui.handlers import STATUS_MESSAGES
 
 def main(page: ft.Page):
     page.title = "Carno Academy Super RFM"
@@ -27,13 +32,22 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
     
     # Set window icon and logo (simple approach)
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    # Look for icon in assets folder or project root
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assets_dir = os.path.join(project_root, "assets")
     icon_path = None
     logo_path = None
     
-    # Try myicon.ico first, then icon.ico
+    # Try myicon.ico first, then icon.ico in assets folder, then project root
     for icon_name in ["myicon.ico", "icon.ico"]:
-        test_path = os.path.join(base_dir, icon_name)
+        # Check assets folder first
+        test_path = os.path.join(assets_dir, icon_name)
+        if os.path.exists(test_path):
+            icon_path = test_path
+            logo_path = test_path
+            break
+        # Check project root
+        test_path = os.path.join(project_root, icon_name)
         if os.path.exists(test_path):
             icon_path = test_path
             logo_path = test_path
