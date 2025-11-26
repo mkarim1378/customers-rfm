@@ -232,10 +232,16 @@ def process_customer_list(file_path, progress_callback=None, status_callback=Non
 
 def main(page: ft.Page):
     page.title = "Customer List Processor"
-    page.window.width = 1200
-    page.window.height = 800
+    page.window.width = page.window.max_width
+    page.window.height = page.window.max_height
+    page.window.maximized = True
     page.padding = 20
     page.theme_mode = ft.ThemeMode.LIGHT
+    
+    # Set window icon (if icon.ico exists in the same directory)
+    icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
+    if os.path.exists(icon_path):
+        page.window.icon = icon_path
     
     # State variables
     selected_file_path = None
@@ -432,9 +438,9 @@ def main(page: ft.Page):
         # Clear existing rows
         data_table.rows = []
         
-        # Add rows from processed data
+        # Add only first 5 rows from processed data
         row_number = 1
-        for idx, row in processed_data.iterrows():
+        for idx, row in processed_data.head(5).iterrows():
             phone = str(row.get('numberr', ''))
             name = str(row.get('name', ''))
             sp = str(row.get('sp', ''))
