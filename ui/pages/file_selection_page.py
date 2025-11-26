@@ -133,10 +133,10 @@ def create_file_selection_page(page: ft.Page, navigate_to_results):
                 
             except Exception as ex:
                 error_msg = str(ex)
-                # Show error on main thread
-                def show_error_callback():
+                # Show error on main thread using async wrapper
+                async def show_error_async():
                     show_error(error_msg)
-                page.run_task(lambda: show_error_callback())
+                page.run_task(show_error_async)
         
         def show_error(error_msg):
             loading_spinner.visible = False
