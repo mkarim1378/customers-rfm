@@ -132,7 +132,11 @@ def create_file_selection_page(page: ft.Page, navigate_to_results):
                 page.run_task(navigate_async)
                 
             except Exception as ex:
-                show_error(str(ex))
+                error_msg = str(ex)
+                # Show error on main thread
+                def show_error_callback():
+                    show_error(error_msg)
+                page.run_task(lambda: show_error_callback())
         
         def show_error(error_msg):
             loading_spinner.visible = False
