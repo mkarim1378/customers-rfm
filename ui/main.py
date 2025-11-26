@@ -89,6 +89,9 @@ def main(page: ft.Page):
         
         page.update()
     
+    # Set initial route handler
+    page.on_route_change = route_change
+    
     def view_pop(view):
         """Handle back navigation"""
         page.views.pop()
