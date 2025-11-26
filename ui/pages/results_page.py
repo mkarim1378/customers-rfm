@@ -92,6 +92,7 @@ def create_results_page(page: ft.Page, processed_data: pd.DataFrame):
     top_bar = ft.Container(
         height=60,
         bgcolor=ft.Colors.BLUE_50,
+        padding=15,
         content=ft.Row(
             controls=[
                 ft.Text("Processed Customers", size=20, weight=ft.FontWeight.BOLD),
@@ -100,7 +101,6 @@ def create_results_page(page: ft.Page, processed_data: pd.DataFrame):
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            padding=15,
         ),
     )
     
