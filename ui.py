@@ -325,11 +325,11 @@ def main(page: ft.Page):
                     status_callback=update_status
                 )
                 
-                # Update UI on main thread
-                page.run_task(lambda: update_ui_after_processing())
+                # Update UI directly (page.update() is thread-safe)
+                update_ui_after_processing()
                 
             except Exception as ex:
-                page.run_task(lambda: show_error(str(ex)))
+                show_error(str(ex))
         
         def update_ui_after_processing():
             nonlocal processed_data
