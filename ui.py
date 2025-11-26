@@ -250,16 +250,6 @@ def main(page: ft.Page):
     page.overlay.append(save_file_picker)
     
     # Drag and drop area (clickable container)
-    def on_hover_drag_box(e):
-        if e.data == "true":
-            drag_drop_container.border = ft.border.all(3, ft.Colors.BLUE_400)
-            drag_drop_container.bgcolor = ft.Colors.BLUE_50
-        else:
-            if selected_file_path is None:
-                drag_drop_container.border = ft.border.all(2, ft.Colors.GREY_400)
-                drag_drop_container.bgcolor = ft.Colors.GREY_50
-        page.update()
-    
     drag_drop_container = ft.Container(
         width=500,
         height=300,
@@ -277,9 +267,20 @@ def main(page: ft.Page):
             spacing=20,
         ),
         on_click=lambda e: select_file(e),
-        on_hover=on_hover_drag_box,
-        animate=ft.animation.Animation(200, ft.AnimationCurve.EASE_OUT),
+        animate=ft.Animation(200, ft.AnimationCurve.EASE_OUT),
     )
+    
+    def on_hover_drag_box(e):
+        if e.data == "true":
+            drag_drop_container.border = ft.border.all(3, ft.Colors.BLUE_400)
+            drag_drop_container.bgcolor = ft.Colors.BLUE_50
+        else:
+            if selected_file_path is None:
+                drag_drop_container.border = ft.border.all(2, ft.Colors.GREY_400)
+                drag_drop_container.bgcolor = ft.Colors.GREY_50
+        page.update()
+    
+    drag_drop_container.on_hover = on_hover_drag_box
     
     # File info display
     file_info_container = ft.Container(
@@ -319,26 +320,6 @@ def main(page: ft.Page):
         ),
         expand=True,
         visible=False,
-    )
-    
-    # Data table
-    data_table = ft.DataTable(
-        columns=[
-            ft.DataColumn(ft.Text("#")),
-            ft.DataColumn(ft.Text("Phone")),
-            ft.DataColumn(ft.Text("Name")),
-            ft.DataColumn(ft.Text("Sales Expert")),
-            ft.DataColumn(ft.Text("Products")),
-        ],
-        rows=[],
-    )
-    
-    scrollable_table = ft.Container(
-        content=ft.Column(
-            controls=[data_table],
-            scroll=ft.ScrollMode.AUTO,
-        ),
-        expand=True,
     )
     
     def get_file_size(file_path):
