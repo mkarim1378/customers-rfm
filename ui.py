@@ -226,14 +226,6 @@ def process_customer_list(file_path, progress_callback=None, status_callback=Non
         final_df['hichi'] = final_df['hichi'].replace(0, None)
 
     if status_callback:
-        status_callback("Saving output file...")
-    
-    # Save to final_merged_list.xlsx in the same directory as input file
-    output_dir = os.path.dirname(file_path) if os.path.dirname(file_path) else '.'
-    output_path = os.path.join(output_dir, 'final_merged_list.xlsx')
-    final_df.to_excel(output_path, index=False)
-    
-    if status_callback:
         status_callback("Processing completed successfully!")
     
     return final_df
@@ -247,13 +239,17 @@ def main(page: ft.Page):
     
     # State variables
     selected_file_path = None
+    selected_output_path = None
     processed_data = None
     
     # UI Components
     file_picker = ft.FilePicker()
+    save_file_picker = ft.FilePicker()
     page.overlay.append(file_picker)
+    page.overlay.append(save_file_picker)
     
     file_path_text = ft.Text("No file selected", size=14, color=ft.Colors.GREY_700)
+    output_path_text = ft.Text("No output path selected", size=14, color=ft.Colors.GREY_700)
     status_text = ft.Text("Ready", size=12, color=ft.Colors.BLUE_700)
     progress_bar = ft.ProgressBar(width=400, visible=False)
     
@@ -289,11 +285,30 @@ def main(page: ft.Page):
     
     file_picker.on_result = file_picked
     
+    def output_path_selected(e):
+        nonlocal selected_output_path
+        if e.path:
+            selected_output_path = e.path
+            output_path_text.value = selected_output_path
+            output_path_text.color = ft.Colors.GREEN_700
+            status_text.value = "Output path selected."
+            status_text.color = ft.Colors.BLUE_700
+            page.update()
+    
+    save_file_picker.on_result = output_path_selected
+    
     def select_file(e):
         file_picker.pick_files(
             dialog_title="Select Excel file",
             allowed_extensions=["xlsx", "xls"],
             file_type=ft.FilePickerFileType.CUSTOM,
+        )
+    
+    def select_output_path(e):
+        save_file_picker.save_file(
+            dialog_title="Save output file",
+            file_name="final_merged_list.xlsx",
+            allowed_extensions=["xlsx"],
         )
     
     def process_file(e):
@@ -378,6 +393,31 @@ def main(page: ft.Page):
         thread = threading.Thread(target=process_in_thread, daemon=True)
         thread.start()
     
+    def export_file(e):
+        nonlocal processed_data, selected_output_path
+        
+        if processed_data is None:
+            status_text.value = "Please process a file first!"
+            status_text.color = ft.Colors.RED_700
+            page.update()
+            return
+        
+        if not selected_output_path:
+            status_text.value = "Please select an output path first!"
+            status_text.color = ft.Colors.RED_700
+            page.update()
+            return
+        
+        try:
+            processed_data.to_excel(selected_output_path, index=False)
+            status_text.value = f"File exported successfully to: {selected_output_path}"
+            status_text.color = ft.Colors.GREEN_700
+            page.update()
+        except Exception as ex:
+            status_text.value = f"Error exporting file: {str(ex)}"
+            status_text.color = ft.Colors.RED_700
+            page.update()
+    
     select_btn = ft.ElevatedButton(
         "Select File",
         icon=ft.Icons.FOLDER_OPEN,
@@ -388,6 +428,18 @@ def main(page: ft.Page):
         "Process",
         icon=ft.Icons.PLAY_ARROW,
         on_click=process_file,
+    )
+    
+    select_output_btn = ft.ElevatedButton(
+        "Select Output Path",
+        icon=ft.Icons.SAVE,
+        on_click=select_output_path,
+    )
+    
+    export_btn = ft.ElevatedButton(
+        "Export",
+        icon=ft.Icons.DOWNLOAD,
+        on_click=export_file,
     )
     
     # Layout
@@ -402,13 +454,22 @@ def main(page: ft.Page):
             controls=[
                 select_btn,
                 process_btn,
+                select_output_btn,
+                export_btn,
             ],
         ),
         ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
         ft.Row(
             controls=[
-                ft.Text("Selected file: ", size=14, weight=ft.FontWeight.W_500),
+                ft.Text("Input file: ", size=14, weight=ft.FontWeight.W_500),
                 file_path_text,
+            ],
+        ),
+        ft.Divider(height=5, color=ft.Colors.TRANSPARENT),
+        ft.Row(
+            controls=[
+                ft.Text("Output path: ", size=14, weight=ft.FontWeight.W_500),
+                output_path_text,
             ],
         ),
         ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
