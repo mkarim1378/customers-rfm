@@ -563,5 +563,14 @@ def main(page: ft.Page):
     )
 
 if __name__ == "__main__":
+    # To set a custom icon, place an icon.ico file in the same directory as this script
+    # Icon requirements:
+    # - Format: .ico (Windows Icon format)
+    # - Recommended sizes: 16x16, 32x32, 48x48, 256x256 pixels (multi-resolution ICO)
+    # - You can create ICO files using online tools like:
+    #   - https://convertio.co/png-ico/
+    #   - https://www.icoconverter.com/
+    #   - Or use image editing software like GIMP, Photoshop, etc.
+    # - The icon file should be named "icon.ico" and placed in the project root
     ft.app(target=main)
 
