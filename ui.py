@@ -241,6 +241,7 @@ def main(page: ft.Page):
     selected_file_path = None
     selected_output_path = None
     processed_data = None
+    file_info = None
     
     # UI Components
     file_picker = ft.FilePicker()
@@ -248,10 +249,77 @@ def main(page: ft.Page):
     page.overlay.append(file_picker)
     page.overlay.append(save_file_picker)
     
-    file_path_text = ft.Text("No file selected", size=14, color=ft.Colors.GREY_700)
-    output_path_text = ft.Text("No output path selected", size=14, color=ft.Colors.GREY_700)
-    status_text = ft.Text("Ready", size=12, color=ft.Colors.BLUE_700)
-    progress_bar = ft.ProgressBar(width=400, visible=False)
+    # Drag and drop area (clickable container)
+    def on_hover_drag_box(e):
+        if e.data == "true":
+            drag_drop_container.border = ft.border.all(3, ft.Colors.BLUE_400)
+            drag_drop_container.bgcolor = ft.Colors.BLUE_50
+        else:
+            if selected_file_path is None:
+                drag_drop_container.border = ft.border.all(2, ft.Colors.GREY_400)
+                drag_drop_container.bgcolor = ft.Colors.GREY_50
+        page.update()
+    
+    drag_drop_container = ft.Container(
+        width=500,
+        height=300,
+        border=ft.border.all(2, ft.Colors.GREY_400),
+        border_radius=10,
+        bgcolor=ft.Colors.GREY_50,
+        content=ft.Column(
+            controls=[
+                ft.Icon(ft.Icons.CLOUD_UPLOAD, size=64, color=ft.Colors.BLUE_400),
+                ft.Text("Drag & Drop your Excel file here", size=18, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
+                ft.Text("or click to browse", size=14, color=ft.Colors.GREY_600),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=20,
+        ),
+        on_click=lambda e: select_file(e),
+        on_hover=on_hover_drag_box,
+        animate=ft.animation.Animation(200, ft.AnimationCurve.EASE_OUT),
+    )
+    
+    # File info display
+    file_info_container = ft.Container(
+        visible=False,
+        content=ft.Column(
+            controls=[],
+            spacing=10,
+        ),
+    )
+    
+    # Loading spinner
+    loading_spinner = ft.ProgressRing(
+        width=80,
+        height=80,
+        stroke_width=4,
+        visible=False,
+    )
+    
+    status_text = ft.Text("Ready to process! 🚀", size=16, color=ft.Colors.BLUE_700, weight=ft.FontWeight.W_500)
+    
+    # Data table
+    data_table = ft.DataTable(
+        columns=[
+            ft.DataColumn(ft.Text("#")),
+            ft.DataColumn(ft.Text("Phone")),
+            ft.DataColumn(ft.Text("Name")),
+            ft.DataColumn(ft.Text("Sales Expert")),
+            ft.DataColumn(ft.Text("Products")),
+        ],
+        rows=[],
+    )
+    
+    scrollable_table = ft.Container(
+        content=ft.Column(
+            controls=[data_table],
+            scroll=ft.ScrollMode.AUTO,
+        ),
+        expand=True,
+        visible=False,
+    )
     
     # Data table
     data_table = ft.DataTable(
@@ -273,26 +341,54 @@ def main(page: ft.Page):
         expand=True,
     )
     
-    def file_picked(e):
-        nonlocal selected_file_path
-        if e.files and len(e.files) > 0:
-            selected_file_path = e.files[0].path
-            file_path_text.value = os.path.basename(selected_file_path)
-            file_path_text.color = ft.Colors.GREEN_700
-            status_text.value = "File selected. Click 'Process' to continue."
-            status_text.color = ft.Colors.BLUE_700
-            page.update()
+    def get_file_size(file_path):
+        """Get file size in human readable format"""
+        size = os.path.getsize(file_path)
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:.1f} {unit}"
+            size /= 1024.0
+        return f"{size:.1f} TB"
     
+    def handle_file_selection(file_path):
+        nonlocal selected_file_path, file_info
+        selected_file_path = file_path
+        file_name = os.path.basename(selected_file_path)
+        file_size = get_file_size(selected_file_path)
+        
+        # Update drag drop container to show file info
+        drag_drop_container.content.controls = [
+            ft.Icon(ft.Icons.CHECK_CIRCLE, size=64, color=ft.Colors.GREEN_500),
+            ft.Text(f"File loaded! ✨", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_700),
+            ft.Text(f"{file_name}", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
+            ft.Text(f"Size: {file_size}", size=12, color=ft.Colors.GREY_600),
+        ]
+        drag_drop_container.border = ft.border.all(2, ft.Colors.GREEN_400)
+        drag_drop_container.bgcolor = ft.Colors.GREEN_50
+        
+        status_text.value = "Great! Processing your file now... ⚡"
+        status_text.color = ft.Colors.BLUE_700
+        
+        # Show loading spinner and start processing
+        loading_spinner.visible = True
+        page.update()
+        
+        # Auto-start processing
+        start_processing()
+    
+    def file_picked(e):
+        if e.files and len(e.files) > 0:
+            handle_file_selection(e.files[0].path)
+    
+    # Enable file picker to accept dropped files
     file_picker.on_result = file_picked
     
     def output_path_selected(e):
         nonlocal selected_output_path
         if e.path:
             selected_output_path = e.path
-            output_path_text.value = selected_output_path
-            output_path_text.color = ft.Colors.GREEN_700
-            status_text.value = "Output path selected."
-            status_text.color = ft.Colors.BLUE_700
+            status_text.value = f"Output path set! Ready to export 🎯"
+            status_text.color = ft.Colors.GREEN_700
             page.update()
     
     save_file_picker.on_result = output_path_selected
@@ -311,30 +407,28 @@ def main(page: ft.Page):
             allowed_extensions=["xlsx"],
         )
     
-    def process_file(e):
+    def start_processing():
         nonlocal processed_data
         
         if not selected_file_path:
-            status_text.value = "Please select a file first!"
-            status_text.color = ft.Colors.RED_700
-            page.update()
             return
-        
-        # Disable process button and show progress
-        process_btn.disabled = True
-        select_btn.disabled = True
-        export_btn.disabled = True
-        progress_bar.visible = True
-        status_text.value = "Processing..."
-        status_text.color = ft.Colors.BLUE_700
-        data_table.rows = []
-        page.update()
         
         def process_in_thread():
             nonlocal processed_data
             try:
                 def update_status(msg):
-                    status_text.value = msg
+                    # Update status with fun messages
+                    fun_messages = {
+                        "Reading Excel file...": "Reading your file... 📖",
+                        "Cleaning and standardizing phone numbers...": "Cleaning up phone numbers... 🧹",
+                        "Normalizing product columns...": "Organizing products... 📦",
+                        "Merging duplicate records...": "Merging duplicates... 🔄",
+                        "Updating 'hichi' column...": "Finalizing data... ✨",
+                        "Building products list...": "Building product list... 🏗️",
+                        "Formatting phone numbers...": "Formatting numbers... 🔢",
+                        "Processing completed successfully!": "Almost done! 🎉",
+                    }
+                    status_text.value = fun_messages.get(msg, msg)
                     page.update()
                 
                 processed_data = process_customer_list(
@@ -348,99 +442,84 @@ def main(page: ft.Page):
             except Exception as ex:
                 show_error(str(ex))
         
-        def update_ui_after_processing():
-            nonlocal processed_data
-            # Clear existing rows
-            data_table.rows = []
-            
-            # Add rows from processed data
-            row_number = 1
-            for idx, row in processed_data.iterrows():
-                phone = str(row.get('numberr', ''))
-                name = str(row.get('name', ''))
-                sp = str(row.get('sp', ''))
-                products = str(row.get('products', ''))
-                
-                data_table.rows.append(
-                    ft.DataRow(
-                        cells=[
-                            ft.DataCell(ft.Text(str(row_number))),
-                            ft.DataCell(ft.Text(phone)),
-                            ft.DataCell(ft.Text(name)),
-                            ft.DataCell(ft.Text(sp)),
-                            ft.DataCell(ft.Text(products)),
-                        ]
-                    )
-                )
-                row_number += 1
-            
-            # Re-enable buttons and hide progress
-            process_btn.disabled = False
-            select_btn.disabled = False
-            export_btn.disabled = False
-            progress_bar.visible = False
-            status_text.value = f"Processing completed! {len(processed_data)} customers processed."
-            status_text.color = ft.Colors.GREEN_700
-            page.update()
-        
-        def show_error(error_msg):
-            process_btn.disabled = False
-            select_btn.disabled = False
-            export_btn.disabled = True
-            progress_bar.visible = False
-            status_text.value = f"Error: {error_msg}"
-            status_text.color = ft.Colors.RED_700
-            page.update()
-        
         # Run processing in background thread
         thread = threading.Thread(target=process_in_thread, daemon=True)
         thread.start()
+        
+    def update_ui_after_processing():
+        nonlocal processed_data
+        # Clear existing rows
+        data_table.rows = []
+        
+        # Add rows from processed data
+        row_number = 1
+        for idx, row in processed_data.iterrows():
+            phone = str(row.get('numberr', ''))
+            name = str(row.get('name', ''))
+            sp = str(row.get('sp', ''))
+            products = str(row.get('products', ''))
+            
+            data_table.rows.append(
+                ft.DataRow(
+                    cells=[
+                        ft.DataCell(ft.Text(str(row_number))),
+                        ft.DataCell(ft.Text(phone)),
+                        ft.DataCell(ft.Text(name)),
+                        ft.DataCell(ft.Text(sp)),
+                        ft.DataCell(ft.Text(products)),
+                    ]
+                )
+            )
+            row_number += 1
+        
+        # Hide loading spinner and show results
+        loading_spinner.visible = False
+        scrollable_table.visible = True
+        status_text.value = f"All done! 🎉 Processed {len(processed_data)} customers successfully. Ready to export!"
+        status_text.color = ft.Colors.GREEN_700
+        export_btn.disabled = False
+        page.update()
+    
+    def show_error(error_msg):
+        loading_spinner.visible = False
+        status_text.value = f"Oops! Something went wrong 😅 Error: {error_msg}"
+        status_text.color = ft.Colors.RED_700
+        page.update()
     
     def export_file(e):
         nonlocal processed_data, selected_output_path
         
         if processed_data is None:
-            status_text.value = "Please process a file first!"
-            status_text.color = ft.Colors.RED_700
-            page.update()
-            return
-        
-        if not selected_output_path:
-            status_text.value = "Please select an output path first!"
+            status_text.value = "No data to export! Process a file first 😊"
             status_text.color = ft.Colors.RED_700
             page.update()
             return
         
         try:
-            processed_data.to_excel(selected_output_path, index=False)
-            status_text.value = f"File exported successfully to: {selected_output_path}"
+            # If no output path selected, save next to input file
+            if not selected_output_path:
+                output_dir = os.path.dirname(selected_file_path) if os.path.dirname(selected_file_path) else '.'
+                output_path = os.path.join(output_dir, 'final_merged_list.xlsx')
+            else:
+                output_path = selected_output_path
+            
+            processed_data.to_excel(output_path, index=False)
+            status_text.value = f"File saved successfully! 🎊 Check it out: {os.path.basename(output_path)}"
             status_text.color = ft.Colors.GREEN_700
             page.update()
         except Exception as ex:
-            status_text.value = f"Error exporting file: {str(ex)}"
+            status_text.value = f"Oops! Couldn't save file 😅 Error: {str(ex)}"
             status_text.color = ft.Colors.RED_700
             page.update()
     
-    select_btn = ft.ElevatedButton(
-        "Select File",
-        icon=ft.Icons.FOLDER_OPEN,
-        on_click=select_file,
-    )
-    
-    process_btn = ft.ElevatedButton(
-        "Process",
-        icon=ft.Icons.PLAY_ARROW,
-        on_click=process_file,
-    )
-    
     select_output_btn = ft.ElevatedButton(
-        "Select Output Path",
-        icon=ft.Icons.SAVE,
+        "Choose Output Location",
+        icon=ft.Icons.FOLDER_OPEN,
         on_click=select_output_path,
     )
     
     export_btn = ft.ElevatedButton(
-        "Export",
+        "Save File",
         icon=ft.Icons.DOWNLOAD,
         on_click=export_file,
         disabled=True,
@@ -448,46 +527,52 @@ def main(page: ft.Page):
     
     # Layout
     page.add(
-        ft.Row(
+        ft.Column(
             controls=[
-                ft.Text("Customer List Processor", size=24, weight=ft.FontWeight.BOLD),
+                ft.Row(
+                    controls=[
+                        ft.Text("Customer List Processor", size=28, weight=ft.FontWeight.BOLD),
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+                ft.Divider(height=40, color=ft.Colors.TRANSPARENT),
+                # Drag and drop area centered
+                ft.Row(
+                    controls=[drag_drop_container],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+                ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
+                # Loading spinner
+                ft.Row(
+                    controls=[loading_spinner],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+                ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
+                # Status text
+                ft.Row(
+                    controls=[status_text],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+                ft.Divider(height=30, color=ft.Colors.TRANSPARENT),
+                # Buttons
+                ft.Row(
+                    controls=[
+                        select_output_btn,
+                        export_btn,
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=20,
+                ),
+                ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
+                # Results table
+                ft.Text("Processed Customers:", size=18, weight=ft.FontWeight.BOLD),
+                ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
+                scrollable_table,
             ],
-        ),
-        ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
-        ft.Row(
-            controls=[
-                select_btn,
-                process_btn,
-                select_output_btn,
-                export_btn,
-            ],
-        ),
-        ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
-        ft.Row(
-            controls=[
-                ft.Text("Input file: ", size=14, weight=ft.FontWeight.W_500),
-                file_path_text,
-            ],
-        ),
-        ft.Divider(height=5, color=ft.Colors.TRANSPARENT),
-        ft.Row(
-            controls=[
-                ft.Text("Output path: ", size=14, weight=ft.FontWeight.W_500),
-                output_path_text,
-            ],
-        ),
-        ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
-        ft.Row(
-            controls=[
-                progress_bar,
-            ],
-        ),
-        ft.Divider(height=5, color=ft.Colors.TRANSPARENT),
-        status_text,
-        ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
-        ft.Text("Processed Customers:", size=16, weight=ft.FontWeight.BOLD),
-        ft.Divider(height=5, color=ft.Colors.TRANSPARENT),
-        scrollable_table,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        )
     )
 
 if __name__ == "__main__":
