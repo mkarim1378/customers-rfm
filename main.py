@@ -591,7 +591,7 @@ class MainApp:
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10
             ),
-            width=500,
+            expand=True,
             height=200,
             border=ft.border.all(2, "#E0E0E0"),
             border_radius=10,
