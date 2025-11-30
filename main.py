@@ -576,11 +576,6 @@ class MainApp:
                         size=16,
                         weight=ft.FontWeight.W_500,
                         color="#666666"
-                    ),
-                    ft.ElevatedButton(
-                        "Browse Files",
-                        icon="folder_open",
-                        on_click=self.browse_files
                     )
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
