@@ -34,8 +34,13 @@ class MainApp:
         self.excel_data = None
         self.excel_df = None
         self.filtered_df = None
-        self.file_picker = None
         self.column_sort_states = {}  # Track sort state for each column
+        
+        # Initialize file picker
+        self.file_picker = ft.FilePicker(
+            on_result=self.on_file_picked
+        )
+        self.page.overlay.append(self.file_picker)
         
         # Build UI
         self.build_ui()
@@ -646,11 +651,26 @@ class MainApp:
     
     def browse_files(self, e):
         """Open file picker dialog"""
-        if self.file_picker:
-            self.file_picker.pick_files(
-                allowed_extensions=["xlsx"],
-                dialog_title="Select Excel File"
-            )
+        try:
+            if self.file_picker:
+                self.file_picker.pick_files(
+                    allowed_extensions=["xlsx"],
+                    dialog_title="Select Excel File"
+                )
+                self.page.update()
+            else:
+                # Re-initialize if not set
+                self.file_picker = ft.FilePicker(
+                    on_result=self.on_file_picked
+                )
+                self.page.overlay.append(self.file_picker)
+                self.file_picker.pick_files(
+                    allowed_extensions=["xlsx"],
+                    dialog_title="Select Excel File"
+                )
+                self.page.update()
+        except Exception as ex:
+            print(f"Error opening file picker: {ex}")
     
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         """Handle file picker result"""
