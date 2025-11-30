@@ -48,8 +48,13 @@ class MainApp:
         self.page.window_min_height = 600
         
         # Remove default window controls (we'll create custom ones)
-        self.page.window_title_bar_hidden = True
-        self.page.window_frameless = True
+        # Use try-except for compatibility with different Flet versions
+        try:
+            self.page.window_title_bar_hidden = True
+            self.page.window_frameless = True
+        except AttributeError:
+            # If these properties don't exist, continue without them
+            pass
         
         # Set theme
         self.page.theme_mode = ft.ThemeMode.LIGHT
@@ -88,23 +93,22 @@ class MainApp:
         )
         
         # Stack to hold everything (for popup overlay)
-        self.page.add(
-            ft.Stack(
-                controls=[
-                    ft.Column(
-                        controls=[
-                            title_bar,
-                            main_layout
-                        ],
-                        spacing=0,
-                        expand=True
-                    ),
-                    self.blur_overlay,
-                    # Popups will be added here dynamically
-                ],
-                expand=True
-            )
+        self.main_stack = ft.Stack(
+            controls=[
+                ft.Column(
+                    controls=[
+                        title_bar,
+                        main_layout
+                    ],
+                    spacing=0,
+                    expand=True
+                ),
+                self.blur_overlay,
+                # Popups will be added here dynamically
+            ],
+            expand=True
         )
+        self.page.add(self.main_stack)
     
     def create_title_bar(self):
         """Create custom title bar with window controls"""
@@ -147,28 +151,38 @@ class MainApp:
             height=35,
             padding=ft.padding.only(left=15, right=5),
             bgcolor="#FFFFFF",
-            border=ft.border.only(bottom=ft.BorderSide(1, "#E0E0E0")),
-            # Enable window dragging on title bar
-            on_pan_start=self.on_drag_start,
-            on_pan_update=self.on_drag_update
+            border=ft.border.only(bottom=ft.BorderSide(1, "#E0E0E0"))
         )
+        # Enable window dragging on title bar (if supported)
+        # Note: Pan events might not be available in all Flet versions
+        # We'll set them if the Container supports them
+        if hasattr(title_bar, 'on_pan_start'):
+            title_bar.on_pan_start = self.on_drag_start
+        if hasattr(title_bar, 'on_pan_update'):
+            title_bar.on_pan_update = self.on_drag_update
         return title_bar
     
     def on_drag_start(self, e: ft.DragStartEvent):
         """Handle drag start for window movement"""
-        self.drag_start_x = e.global_x
-        self.drag_start_y = e.global_y
-        self.window_start_x = self.page.window.left
-        self.window_start_y = self.page.window.top
+        try:
+            self.drag_start_x = e.global_x
+            self.drag_start_y = e.global_y
+            self.window_start_x = self.page.window.left if hasattr(self.page.window, 'left') else 0
+            self.window_start_y = self.page.window.top if hasattr(self.page.window, 'top') else 0
+        except (AttributeError, TypeError):
+            pass
     
     def on_drag_update(self, e: ft.DragUpdateEvent):
         """Handle drag update for window movement"""
-        if hasattr(self, 'drag_start_x'):
-            delta_x = e.global_x - self.drag_start_x
-            delta_y = e.global_y - self.drag_start_y
-            self.page.window.left = self.window_start_x + delta_x
-            self.page.window.top = self.window_start_y + delta_y
-            self.page.update()
+        try:
+            if hasattr(self, 'drag_start_x') and hasattr(self.page.window, 'left'):
+                delta_x = e.global_x - self.drag_start_x
+                delta_y = e.global_y - self.drag_start_y
+                self.page.window.left = self.window_start_x + delta_x
+                self.page.window.top = self.window_start_y + delta_y
+                self.page.update()
+        except (AttributeError, TypeError):
+            pass
     
     def create_main_content(self):
         """Create main content area with search bar"""
@@ -479,14 +493,26 @@ class MainApp:
     # Event handlers
     def minimize_window(self, e):
         """Minimize the window"""
-        self.page.window.minimized = True
-        self.page.update()
+        try:
+            self.page.window.minimized = True
+            self.page.update()
+        except (AttributeError, TypeError):
+            # If minimize is not supported, just log the action
+            pass
         self.db.log_action("window_minimized")
     
     def close_window(self, e):
         """Close the window"""
         self.db.log_action("app_closed", {"timestamp": datetime.now().isoformat()})
-        self.page.window.close()
+        try:
+            self.page.window.close()
+        except (AttributeError, TypeError):
+            # If close is not supported, try alternative
+            try:
+                import sys
+                sys.exit()
+            except:
+                pass
     
     def on_search(self, e):
         """Handle search submission"""
@@ -551,7 +577,7 @@ class MainApp:
             # Create and add settings popup if not exists
             if not hasattr(self, 'settings_popup'):
                 self.settings_popup = self.create_settings_popup()
-                self.page.controls[0].controls.append(self.settings_popup)
+                self.main_stack.controls.append(self.settings_popup)
             
             self.settings_popup.visible = True
             self.page.update()
@@ -575,10 +601,11 @@ class MainApp:
             
             # Recreate dashboard popup to get fresh data
             if hasattr(self, 'dashboard_popup'):
-                self.page.controls[0].controls.remove(self.dashboard_popup)
+                if self.dashboard_popup in self.main_stack.controls:
+                    self.main_stack.controls.remove(self.dashboard_popup)
             
             self.dashboard_popup = self.create_dashboard_popup()
-            self.page.controls[0].controls.append(self.dashboard_popup)
+            self.main_stack.controls.append(self.dashboard_popup)
             self.dashboard_popup.visible = True
             self.page.update()
     
