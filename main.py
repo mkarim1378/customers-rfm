@@ -1,6 +1,9 @@
 import flet as ft
 from database import Database
 from datetime import datetime
+import pandas as pd
+import os
+from io import BytesIO
 
 
 def color_with_opacity(color_hex: str, opacity: float) -> str:
@@ -25,6 +28,14 @@ class MainApp:
         # State for popups
         self.settings_popup_open = False
         self.dashboard_popup_open = False
+        self.upload_popup_open = False
+        
+        # State for Excel data
+        self.excel_data = None
+        self.excel_df = None
+        self.filtered_df = None
+        self.file_picker = None
+        self.column_sort_states = {}  # Track sort state for each column
         
         # Build UI
         self.build_ui()
@@ -146,6 +157,23 @@ class MainApp:
             on_change=self.on_search_change
         )
         
+        # Main content area - will be updated when Excel is loaded
+        self.main_content_area = ft.Container(
+            expand=True,
+            content=ft.Column(
+                controls=[
+                    ft.Text(
+                        "Main content area",
+                        size=16,
+                        color="#999999",
+                        text_align=ft.TextAlign.CENTER
+                    )
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            )
+        )
+        
         main_content = ft.Container(
             content=ft.Column(
                 controls=[
@@ -155,22 +183,7 @@ class MainApp:
                         width=600,
                         alignment=ft.alignment.top_center
                     ),
-                    # Main content area (empty for now, can be expanded later)
-                    ft.Container(
-                        expand=True,
-                        content=ft.Column(
-                            controls=[
-                                ft.Text(
-                                    "Main content area",
-                                    size=16,
-                                    color="#999999",
-                                    text_align=ft.TextAlign.CENTER
-                                )
-                            ],
-                            alignment=ft.MainAxisAlignment.CENTER,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-                        )
-                    )
+                    self.main_content_area
                 ],
                 spacing=0,
                 expand=True
@@ -463,8 +476,7 @@ class MainApp:
     def on_upload_download_click(self, e):
         """Handle upload/download button click"""
         self.db.log_action("upload_download_button_clicked")
-        # TODO: Implement upload/download functionality
-        print("Upload/Download clicked")
+        self.open_upload_popup()
     
     def on_rfm_click(self, e):
         """Handle RFM button click"""
@@ -550,6 +562,317 @@ class MainApp:
         """Close all open popups"""
         self.close_settings_popup()
         self.close_dashboard_popup()
+        self.close_upload_popup()
+    
+    def create_upload_popup(self):
+        """Create upload/download popup with drag and drop"""
+        # Drag and drop area
+        drag_drop_area = ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Icon("cloud_upload", size=48, color="#2196F3"),
+                    ft.Text(
+                        "Drag and drop Excel file here",
+                        size=16,
+                        weight=ft.FontWeight.W_500,
+                        color="#666666"
+                    ),
+                    ft.Text(
+                        "or click to browse",
+                        size=12,
+                        color="#999999"
+                    ),
+                    ft.ElevatedButton(
+                        "Browse Files",
+                        icon="folder_open",
+                        on_click=self.browse_files
+                    )
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=10
+            ),
+            width=500,
+            height=200,
+            border=ft.border.all(2, "#E0E0E0"),
+            border_radius=10,
+            bgcolor="#F8F8F8",
+            padding=ft.padding.all(20),
+            alignment=ft.alignment.center,
+            on_click=self.browse_files
+        )
+        
+        upload_content = ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Row(
+                        controls=[
+                            ft.Text(
+                                "Upload Excel File",
+                                size=24,
+                                weight=ft.FontWeight.BOLD,
+                                color="#333333"
+                            ),
+                            ft.Container(expand=True),
+                            ft.IconButton(
+                                icon="close",
+                                on_click=self.close_upload_popup,
+                                tooltip="Close"
+                            )
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                    ),
+                    ft.Divider(),
+                    drag_drop_area,
+                    ft.Text(
+                        "Supported format: .xlsx",
+                        size=12,
+                        color="#999999",
+                        text_align=ft.TextAlign.CENTER
+                    )
+                ],
+                spacing=15,
+                scroll=ft.ScrollMode.AUTO
+            ),
+            width=600,
+            height=400,
+            padding=ft.padding.all(20),
+            bgcolor="#FFFFFF",
+            border_radius=10,
+            shadow=ft.BoxShadow(
+                spread_radius=5,
+                blur_radius=15,
+                color=color_with_opacity("#000000", 0.3),
+                offset=ft.Offset(0, 5)
+            )
+        )
+        
+        return ft.Container(
+            content=upload_content,
+            alignment=ft.alignment.center,
+            expand=True,
+            visible=False,
+            animate_opacity=300
+        )
+    
+    def browse_files(self, e):
+        """Open file picker dialog"""
+        if self.file_picker:
+            self.file_picker.pick_files(
+                allowed_extensions=["xlsx"],
+                dialog_title="Select Excel File"
+            )
+    
+    def on_file_picked(self, e: ft.FilePickerResultEvent):
+        """Handle file picker result"""
+        if e.files and len(e.files) > 0:
+            file_path = e.files[0].path
+            self.load_excel_file(file_path)
+    
+    def load_excel_file(self, file_path: str):
+        """Load Excel file and display in table"""
+        try:
+            # Read Excel file
+            self.excel_df = pd.read_excel(file_path)
+            self.filtered_df = self.excel_df.copy()
+            
+            # Log action
+            self.db.log_action("excel_file_uploaded", {"file_path": file_path, "rows": len(self.excel_df), "columns": len(self.excel_df.columns)})
+            
+            # Close upload popup
+            self.close_upload_popup()
+            
+            # Display table in main content
+            self.display_excel_table()
+            
+        except Exception as e:
+            # Show error message
+            self.show_error_message(f"Error loading file: {str(e)}")
+    
+    def display_excel_table(self):
+        """Display Excel data in a table with filters and sorting"""
+        if self.excel_df is None or len(self.excel_df) == 0:
+            return
+        
+        # Create filter controls for each column
+        filter_controls = []
+        column_filters = {}
+        
+        for col in self.excel_df.columns:
+            filter_text = ft.TextField(
+                hint_text=f"Filter {col}",
+                width=150,
+                height=40,
+                on_change=lambda e, col=col: self.apply_column_filter(col, e.control.value)
+            )
+            column_filters[col] = filter_text
+            filter_controls.append(
+                ft.Container(
+                    content=ft.Column(
+                        controls=[
+                            ft.Text(col, size=12, weight=ft.FontWeight.W_500),
+                            filter_text
+                        ],
+                        spacing=5
+                    ),
+                    padding=ft.padding.all(5)
+                )
+            )
+        
+        # Create data table
+        data_rows = []
+        for idx, row in self.filtered_df.iterrows():
+            cells = [ft.DataCell(ft.Text(str(val)[:50] if pd.notna(val) else "")) for val in row]
+            data_rows.append(ft.DataRow(cells=cells))
+        
+        # Create sortable column headers
+        column_headers = []
+        for col in self.excel_df.columns:
+            sort_btn = ft.IconButton(
+                icon="sort",
+                icon_size=16,
+                tooltip=f"Sort {col}",
+                on_click=lambda e, col=col: self.sort_column(e, col)
+            )
+            column_headers.append(
+                ft.DataColumn(
+                    label=ft.Row(
+                        controls=[
+                            ft.Text(col, size=12, weight=ft.FontWeight.W_500),
+                            sort_btn
+                        ],
+                        spacing=5
+                    )
+                )
+            )
+        
+        data_table = ft.DataTable(
+            columns=column_headers,
+            rows=data_rows[:1000],  # Limit to 1000 rows for performance
+            heading_row_color="#E0E0E0",
+            heading_text_style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+            data_row_max_height=50,
+            border=ft.border.all(1, "#E0E0E0"),
+            border_radius=5
+        )
+        
+        # Create scrollable table container
+        table_container = ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Text(
+                        f"Showing {len(self.filtered_df)} rows",
+                        size=14,
+                        weight=ft.FontWeight.W_500,
+                        color="#666666"
+                    ),
+                    ft.Container(
+                        content=data_table,
+                        expand=True,
+                        padding=ft.padding.all(10)
+                    )
+                ],
+                spacing=10,
+                expand=True
+            ),
+            expand=True,
+            border=ft.border.all(1, "#E0E0E0"),
+            border_radius=5,
+            bgcolor="#FFFFFF"
+        )
+        
+        # Update main content area
+        self.main_content_area.content = ft.Column(
+            controls=[
+                ft.Row(
+                    controls=filter_controls,
+                    wrap=True,
+                    scroll=ft.ScrollMode.AUTO
+                ),
+                ft.Container(
+                    content=table_container,
+                    expand=True,
+                    padding=ft.padding.all(10)
+                )
+            ],
+            spacing=10,
+            expand=True
+        )
+        
+        self.page.update()
+    
+    def apply_column_filter(self, column: str, filter_value: str):
+        """Apply filter to a specific column"""
+        if self.excel_df is None:
+            return
+        
+        if not filter_value or filter_value.strip() == "":
+            self.filtered_df = self.excel_df.copy()
+        else:
+            try:
+                # Try numeric filter
+                if self.excel_df[column].dtype in ['int64', 'float64']:
+                    filter_value_num = float(filter_value)
+                    self.filtered_df = self.excel_df[self.excel_df[column] == filter_value_num]
+                else:
+                    # Text filter
+                    self.filtered_df = self.excel_df[
+                        self.excel_df[column].astype(str).str.contains(filter_value, case=False, na=False)
+                    ]
+            except:
+                # Fallback to text filter
+                self.filtered_df = self.excel_df[
+                    self.excel_df[column].astype(str).str.contains(filter_value, case=False, na=False)
+                ]
+        
+        # Refresh table display
+        self.display_excel_table()
+    
+    def sort_column(self, e, column: str):
+        """Sort table by column"""
+        if self.filtered_df is None:
+            return
+        
+        # Toggle ascending/descending
+        if column in self.column_sort_states:
+            ascending = not self.column_sort_states[column]
+        else:
+            ascending = True
+        
+        self.column_sort_states[column] = ascending
+        self.filtered_df = self.filtered_df.sort_values(by=column, ascending=ascending)
+        
+        # Refresh table display
+        self.display_excel_table()
+    
+    def show_error_message(self, message: str):
+        """Show error message to user"""
+        # Simple error display - can be improved with a proper dialog
+        print(f"Error: {message}")
+    
+    def open_upload_popup(self):
+        """Open upload popup"""
+        if not self.upload_popup_open:
+            self.upload_popup_open = True
+            self.blur_overlay.visible = True
+            self.blur_overlay.opacity = 0.5
+            
+            # Create and add upload popup if not exists
+            if not hasattr(self, 'upload_popup'):
+                self.upload_popup = self.create_upload_popup()
+                self.main_stack.controls.append(self.upload_popup)
+            
+            self.upload_popup.visible = True
+            self.page.update()
+    
+    def close_upload_popup(self, e=None):
+        """Close upload popup"""
+        if self.upload_popup_open:
+            self.upload_popup_open = False
+            if hasattr(self, 'upload_popup'):
+                self.upload_popup.visible = False
+            self.blur_overlay.opacity = 0.0
+            self.blur_overlay.visible = False
+            self.page.update()
 
 
 def main(page: ft.Page):
