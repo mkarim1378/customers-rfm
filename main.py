@@ -108,7 +108,7 @@ class MainApp:
                     ft.Container(expand=True),  # Spacer
                     # Minimize button
                     ft.IconButton(
-                        icon=ft.icons.REMOVE,
+                        icon="remove",
                         icon_size=16,
                         tooltip="Minimize",
                         on_click=self.minimize_window,
@@ -119,7 +119,7 @@ class MainApp:
                     ),
                     # Close button
                     ft.IconButton(
-                        icon=ft.icons.CLOSE,
+                        icon="close",
                         icon_size=16,
                         tooltip="Close",
                         on_click=self.close_window,
@@ -162,7 +162,7 @@ class MainApp:
         """Create main content area with search bar"""
         search_bar = ft.TextField(
             hint_text="Search",
-            prefix_icon=ft.icons.SEARCH,
+            prefix_icon="search",
             border_radius=8,
             bgcolor="#FFFFFF",
             border_color="#E0E0E0",
@@ -212,7 +212,7 @@ class MainApp:
         # Top navigation buttons
         history_btn = ft.ElevatedButton(
             text="History",
-            icon=ft.icons.HISTORY,
+            icon="history",
             on_click=self.on_history_click,
             style=ft.ButtonStyle(
                 bgcolor="#2196F3",
@@ -224,7 +224,7 @@ class MainApp:
         
         upload_download_btn = ft.ElevatedButton(
             text="Upload/Download",
-            icon=ft.icons.FILE_UPLOAD,
+            icon="file_upload",
             on_click=self.on_upload_download_click,
             style=ft.ButtonStyle(
                 bgcolor="#4CAF50",
@@ -236,7 +236,7 @@ class MainApp:
         
         rfm_btn = ft.ElevatedButton(
             text="RFM",
-            icon=ft.icons.ANALYTICS,
+            icon="analytics",
             on_click=self.on_rfm_click,
             style=ft.ButtonStyle(
                 bgcolor="#FF9800",
@@ -248,7 +248,7 @@ class MainApp:
         
         crm_btn = ft.ElevatedButton(
             text="CRM",
-            icon=ft.icons.PEOPLE,
+            icon="people",
             on_click=self.on_crm_click,
             style=ft.ButtonStyle(
                 bgcolor="#9C27B0",
@@ -261,7 +261,7 @@ class MainApp:
         # Bottom utility buttons
         settings_btn = ft.ElevatedButton(
             text="Settings",
-            icon=ft.icons.SETTINGS,
+            icon="settings",
             on_click=self.on_settings_click,
             style=ft.ButtonStyle(
                 bgcolor="#607D8B",
@@ -273,7 +273,7 @@ class MainApp:
         
         dashboard_btn = ft.ElevatedButton(
             text="Dashboard",
-            icon=ft.icons.DASHBOARD,
+            icon="dashboard",
             on_click=self.on_dashboard_click,
             style=ft.ButtonStyle(
                 bgcolor="#795548",
@@ -285,7 +285,7 @@ class MainApp:
         
         # User profile icon
         profile_icon = ft.IconButton(
-            icon=ft.icons.LOCK,
+            icon="lock",
             icon_size=24,
             tooltip="User Profile",
             on_click=self.on_profile_click,
@@ -352,7 +352,7 @@ class MainApp:
                             ),
                             ft.Container(expand=True),
                             ft.IconButton(
-                                icon=ft.icons.CLOSE,
+                                icon="close",
                                 on_click=self.close_settings_popup,
                                 tooltip="Close"
                             )
@@ -400,7 +400,7 @@ class MainApp:
                     ft.ListTile(
                         title=ft.Text(action['action_type'], size=14),
                         subtitle=ft.Text(action_time, size=12, color="#999999"),
-                        leading=ft.Icon(ft.icons.HISTORY, size=20)
+                        leading=ft.Icon("history", size=20)
                     )
                 )
         else:
@@ -421,7 +421,7 @@ class MainApp:
                             ),
                             ft.Container(expand=True),
                             ft.IconButton(
-                                icon=ft.icons.CLOSE,
+                                icon="close",
                                 on_click=self.close_dashboard_popup,
                                 tooltip="Close"
                             )
