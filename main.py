@@ -40,14 +40,36 @@ class MainApp:
     
     def setup_page(self):
         """Configure page settings"""
-        self.page.title = "Customers List App"
+        self.page.title = "Sheetil"
         self.page.window_width = 1200
         self.page.window_height = 800
         self.page.window_resizable = True
         self.page.window_min_width = 800
         self.page.window_min_height = 600
         
-        # Remove default window controls (we'll create custom ones)
+        # Center window on screen
+        try:
+            # Try to get screen dimensions and center the window
+            try:
+                import tkinter as tk
+                root = tk.Tk()
+                screen_width = root.winfo_screenwidth()
+                screen_height = root.winfo_screenheight()
+                root.destroy()
+                
+                window_left = (screen_width - 1200) // 2
+                window_top = (screen_height - 800) // 2
+                if hasattr(self.page.window, 'left'):
+                    self.page.window.left = window_left
+                if hasattr(self.page.window, 'top'):
+                    self.page.window.top = window_top
+            except:
+                # If tkinter is not available, window will open at default position
+                pass
+        except:
+            pass
+        
+        # Remove default window title bar (we'll create custom one)
         # Use try-except for compatibility with different Flet versions
         try:
             self.page.window_title_bar_hidden = True
@@ -116,7 +138,7 @@ class MainApp:
             content=ft.Row(
                 controls=[
                     ft.Text(
-                        "Customers List App",
+                        "Sheetil",
                         size=14,
                         weight=ft.FontWeight.W_500,
                         color="#333333"
@@ -309,15 +331,13 @@ class MainApp:
             width=200
         )
         
-        # User profile icon
-        profile_icon = ft.IconButton(
-            icon="lock",
-            icon_size=24,
+        # User profile avatar
+        profile_icon = ft.CircleAvatar(
+            content=ft.Icon("account_circle", size=24, color="#666666"),
+            radius=20,
             tooltip="User Profile",
             on_click=self.on_profile_click,
-            style=ft.ButtonStyle(
-                color="#666666"
-            )
+            bgcolor="#E0E0E0"
         )
         
         sidebar = ft.Container(
