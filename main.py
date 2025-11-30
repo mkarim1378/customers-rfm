@@ -41,6 +41,7 @@ class MainApp:
     def setup_page(self):
         """Configure page settings"""
         self.page.title = "Sheetil"
+        # Set window size and properties
         self.page.window_width = 1200
         self.page.window_height = 800
         self.page.window_resizable = True
@@ -55,8 +56,11 @@ class MainApp:
         except AttributeError:
             try:
                 # Try alternative property names
-                self.page.window.title_bar_hidden = True
-                self.page.window.frameless = True
+                if hasattr(self.page, 'window'):
+                    if hasattr(self.page.window, 'title_bar_hidden'):
+                        self.page.window.title_bar_hidden = True
+                    if hasattr(self.page.window, 'frameless'):
+                        self.page.window.frameless = True
             except:
                 pass
         
@@ -666,42 +670,5 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    # Calculate center position before creating window
-    try:
-        import tkinter as tk
-        root = tk.Tk()
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        root.destroy()
-        
-        window_left = (screen_width - 1200) // 2
-        window_top = (screen_height - 800) // 2
-    except:
-        window_left = None
-        window_top = None
-    
-    # Create app with window settings
-    # Note: Window properties must be set before app starts
-    window_params = {
-        'width': 1200,
-        'height': 800,
-        'title_bar_hidden': True,
-        'frameless': True,
-        'resizable': True,
-        'min_width': 800,
-        'min_height': 600
-    }
-    
-    # Add position if calculated
-    if window_left is not None:
-        window_params['left'] = window_left
-    if window_top is not None:
-        window_params['top'] = window_top
-    
-    ft.app(
-        target=main,
-        assets_dir="assets",
-        view=ft.AppView.FLET_APP,
-        window=ft.Window(**window_params)
-    )
+    ft.app(target=main, assets_dir="assets")
 
