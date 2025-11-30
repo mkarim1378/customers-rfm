@@ -572,15 +572,10 @@ class MainApp:
                 controls=[
                     ft.Icon("cloud_upload", size=48, color="#2196F3"),
                     ft.Text(
-                        "Drag and drop Excel file here",
+                        "Click to select Excel file",
                         size=16,
                         weight=ft.FontWeight.W_500,
                         color="#666666"
-                    ),
-                    ft.Text(
-                        "or click to browse",
-                        size=12,
-                        color="#999999"
                     ),
                     ft.ElevatedButton(
                         "Browse Files",
