@@ -35,9 +35,6 @@ class MainApp:
         # Build UI
         self.build_ui()
         
-        # Center window after UI is built
-        self.center_window()
-        
         # Log app start
         self.db.log_action("app_started", {"timestamp": datetime.now().isoformat()})
     
@@ -50,15 +47,21 @@ class MainApp:
         self.page.window_min_width = 800
         self.page.window_min_height = 600
         
-        
         # Remove default window title bar (we'll create custom one)
-        # Use try-except for compatibility with different Flet versions
+        # This must be set early, before window is displayed
         try:
             self.page.window_title_bar_hidden = True
             self.page.window_frameless = True
         except AttributeError:
-            # If these properties don't exist, continue without them
-            pass
+            try:
+                # Try alternative property names
+                self.page.window.title_bar_hidden = True
+                self.page.window.frameless = True
+            except:
+                pass
+        
+        # Center window - must be done after window properties are set
+        self.center_window()
         
         # Set theme
         self.page.theme_mode = ft.ThemeMode.LIGHT
@@ -67,24 +70,28 @@ class MainApp:
     def center_window(self):
         """Center the window on screen"""
         try:
-            # Try to get screen dimensions and center the window
+            import tkinter as tk
+            root = tk.Tk()
+            screen_width = root.winfo_screenwidth()
+            screen_height = root.winfo_screenheight()
+            root.destroy()
+            
+            window_left = (screen_width - 1200) // 2
+            window_top = (screen_height - 800) // 2
+            
+            # Set window position - try multiple methods
             try:
-                import tkinter as tk
-                root = tk.Tk()
-                screen_width = root.winfo_screenwidth()
-                screen_height = root.winfo_screenheight()
-                root.destroy()
-                
-                window_left = (screen_width - 1200) // 2
-                window_top = (screen_height - 800) // 2
-                if hasattr(self.page.window, 'left'):
-                    self.page.window.left = window_left
-                if hasattr(self.page.window, 'top'):
-                    self.page.window.top = window_top
-            except Exception as e:
-                # If tkinter is not available or fails, window will open at default position
-                pass
+                self.page.window.left = window_left
+                self.page.window.top = window_top
+            except (AttributeError, TypeError):
+                try:
+                    # Alternative: update window properties
+                    if hasattr(self.page.window, 'set_position'):
+                        self.page.window.set_position(window_left, window_top)
+                except:
+                    pass
         except Exception as e:
+            # If tkinter is not available, window will open at default position
             pass
     
     def build_ui(self):
@@ -659,5 +666,42 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main, assets_dir="assets")
+    # Calculate center position before creating window
+    try:
+        import tkinter as tk
+        root = tk.Tk()
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        root.destroy()
+        
+        window_left = (screen_width - 1200) // 2
+        window_top = (screen_height - 800) // 2
+    except:
+        window_left = None
+        window_top = None
+    
+    # Create app with window settings
+    # Note: Window properties must be set before app starts
+    window_params = {
+        'width': 1200,
+        'height': 800,
+        'title_bar_hidden': True,
+        'frameless': True,
+        'resizable': True,
+        'min_width': 800,
+        'min_height': 600
+    }
+    
+    # Add position if calculated
+    if window_left is not None:
+        window_params['left'] = window_left
+    if window_top is not None:
+        window_params['top'] = window_top
+    
+    ft.app(
+        target=main,
+        assets_dir="assets",
+        view=ft.AppView.FLET_APP,
+        window=ft.Window(**window_params)
+    )
 
