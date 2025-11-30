@@ -2,6 +2,18 @@ import flet as ft
 from database import Database
 from datetime import datetime
 
+
+def color_with_opacity(color_hex: str, opacity: float) -> str:
+    """Convert hex color to rgba string with opacity"""
+    # Remove # if present
+    color_hex = color_hex.lstrip('#')
+    # Convert to RGB
+    r = int(color_hex[0:2], 16)
+    g = int(color_hex[2:4], 16)
+    b = int(color_hex[4:6], 16)
+    # Return rgba string
+    return f"rgba({r}, {g}, {b}, {opacity})"
+
 class MainApp:
     def __init__(self, page: ft.Page):
         self.page = page
@@ -114,7 +126,7 @@ class MainApp:
                         on_click=self.minimize_window,
                         style=ft.ButtonStyle(
                             color="#666666",
-                            overlay_color=ft.colors.with_opacity(0.1, "#000000")
+                            overlay_color=color_with_opacity("#000000", 0.1)
                         )
                     ),
                     # Close button
@@ -125,7 +137,7 @@ class MainApp:
                         on_click=self.close_window,
                         style=ft.ButtonStyle(
                             color="#666666",
-                            overlay_color=ft.colors.with_opacity(0.2, "#FF0000")
+                            overlay_color=color_with_opacity("#FF0000", 0.2)
                         )
                     ),
                 ],
@@ -374,7 +386,7 @@ class MainApp:
             shadow=ft.BoxShadow(
                 spread_radius=5,
                 blur_radius=15,
-                color=ft.colors.with_opacity(0.3, "#000000"),
+                color=color_with_opacity("#000000", 0.3),
                 offset=ft.Offset(0, 5)
             )
         )
@@ -451,7 +463,7 @@ class MainApp:
             shadow=ft.BoxShadow(
                 spread_radius=5,
                 blur_radius=15,
-                color=ft.colors.with_opacity(0.3, "#000000"),
+                color=color_with_opacity("#000000", 0.3),
                 offset=ft.Offset(0, 5)
             )
         )
