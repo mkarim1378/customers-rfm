@@ -35,6 +35,9 @@ class MainApp:
         # Build UI
         self.build_ui()
         
+        # Center window after UI is built
+        self.center_window()
+        
         # Log app start
         self.db.log_action("app_started", {"timestamp": datetime.now().isoformat()})
     
@@ -47,7 +50,22 @@ class MainApp:
         self.page.window_min_width = 800
         self.page.window_min_height = 600
         
-        # Center window on screen
+        
+        # Remove default window title bar (we'll create custom one)
+        # Use try-except for compatibility with different Flet versions
+        try:
+            self.page.window_title_bar_hidden = True
+            self.page.window_frameless = True
+        except AttributeError:
+            # If these properties don't exist, continue without them
+            pass
+        
+        # Set theme
+        self.page.theme_mode = ft.ThemeMode.LIGHT
+        self.page.bgcolor = "#F5F5F5"
+    
+    def center_window(self):
+        """Center the window on screen"""
         try:
             # Try to get screen dimensions and center the window
             try:
@@ -63,24 +81,11 @@ class MainApp:
                     self.page.window.left = window_left
                 if hasattr(self.page.window, 'top'):
                     self.page.window.top = window_top
-            except:
-                # If tkinter is not available, window will open at default position
+            except Exception as e:
+                # If tkinter is not available or fails, window will open at default position
                 pass
-        except:
+        except Exception as e:
             pass
-        
-        # Remove default window title bar (we'll create custom one)
-        # Use try-except for compatibility with different Flet versions
-        try:
-            self.page.window_title_bar_hidden = True
-            self.page.window_frameless = True
-        except AttributeError:
-            # If these properties don't exist, continue without them
-            pass
-        
-        # Set theme
-        self.page.theme_mode = ft.ThemeMode.LIGHT
-        self.page.bgcolor = "#F5F5F5"
     
     def build_ui(self):
         """Build the main UI structure"""
@@ -332,12 +337,16 @@ class MainApp:
         )
         
         # User profile avatar
-        profile_icon = ft.CircleAvatar(
-            content=ft.Icon("account_circle", size=24, color="#666666"),
-            radius=20,
+        profile_icon = ft.Container(
+            content=ft.CircleAvatar(
+                content=ft.Icon("account_circle", size=24, color="#666666"),
+                radius=20,
+                bgcolor="#E0E0E0"
+            ),
             tooltip="User Profile",
             on_click=self.on_profile_click,
-            bgcolor="#E0E0E0"
+            width=40,
+            height=40
         )
         
         sidebar = ft.Container(
