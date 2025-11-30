@@ -26,12 +26,6 @@ class MainApp:
         self.settings_popup_open = False
         self.dashboard_popup_open = False
         
-        # Window drag state
-        self.drag_start_x = 0
-        self.drag_start_y = 0
-        self.window_start_x = 0
-        self.window_start_y = 0
-        
         # Build UI
         self.build_ui()
         
@@ -100,9 +94,6 @@ class MainApp:
     
     def build_ui(self):
         """Build the main UI structure"""
-        # Custom title bar with window controls
-        title_bar = self.create_title_bar()
-        
         # Main content area with search
         main_content = self.create_main_content()
         
@@ -133,94 +124,13 @@ class MainApp:
         # Stack to hold everything (for popup overlay)
         self.main_stack = ft.Stack(
             controls=[
-                ft.Column(
-                    controls=[
-                        title_bar,
-                        main_layout
-                    ],
-                    spacing=0,
-                    expand=True
-                ),
+                main_layout,
                 self.blur_overlay,
                 # Popups will be added here dynamically
             ],
             expand=True
         )
         self.page.add(self.main_stack)
-    
-    def create_title_bar(self):
-        """Create custom title bar with window controls"""
-        title_bar = ft.Container(
-            content=ft.Row(
-                controls=[
-                    ft.Text(
-                        "Sheetil",
-                        size=14,
-                        weight=ft.FontWeight.W_500,
-                        color="#333333"
-                    ),
-                    ft.Container(expand=True),  # Spacer
-                    # Minimize button
-                    ft.IconButton(
-                        icon="remove",
-                        icon_size=16,
-                        tooltip="Minimize",
-                        on_click=self.minimize_window,
-                        style=ft.ButtonStyle(
-                            color="#666666",
-                            overlay_color=color_with_opacity("#000000", 0.1)
-                        )
-                    ),
-                    # Close button
-                    ft.IconButton(
-                        icon="close",
-                        icon_size=16,
-                        tooltip="Close",
-                        on_click=self.close_window,
-                        style=ft.ButtonStyle(
-                            color="#666666",
-                            overlay_color=color_with_opacity("#FF0000", 0.2)
-                        )
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER
-            ),
-            height=35,
-            padding=ft.padding.only(left=15, right=5),
-            bgcolor="#FFFFFF",
-            border=ft.border.only(bottom=ft.BorderSide(1, "#E0E0E0"))
-        )
-        # Enable window dragging on title bar (if supported)
-        # Note: Pan events might not be available in all Flet versions
-        # We'll set them if the Container supports them
-        if hasattr(title_bar, 'on_pan_start'):
-            title_bar.on_pan_start = self.on_drag_start
-        if hasattr(title_bar, 'on_pan_update'):
-            title_bar.on_pan_update = self.on_drag_update
-        return title_bar
-    
-    def on_drag_start(self, e: ft.DragStartEvent):
-        """Handle drag start for window movement"""
-        try:
-            self.drag_start_x = e.global_x
-            self.drag_start_y = e.global_y
-            self.window_start_x = self.page.window.left if hasattr(self.page.window, 'left') else 0
-            self.window_start_y = self.page.window.top if hasattr(self.page.window, 'top') else 0
-        except (AttributeError, TypeError):
-            pass
-    
-    def on_drag_update(self, e: ft.DragUpdateEvent):
-        """Handle drag update for window movement"""
-        try:
-            if hasattr(self, 'drag_start_x') and hasattr(self.page.window, 'left'):
-                delta_x = e.global_x - self.drag_start_x
-                delta_y = e.global_y - self.drag_start_y
-                self.page.window.left = self.window_start_x + delta_x
-                self.page.window.top = self.window_start_y + delta_y
-                self.page.update()
-        except (AttributeError, TypeError):
-            pass
     
     def create_main_content(self):
         """Create main content area with search bar"""
@@ -531,29 +441,6 @@ class MainApp:
         )
     
     # Event handlers
-    def minimize_window(self, e):
-        """Minimize the window"""
-        try:
-            self.page.window.minimized = True
-            self.page.update()
-        except (AttributeError, TypeError):
-            # If minimize is not supported, just log the action
-            pass
-        self.db.log_action("window_minimized")
-    
-    def close_window(self, e):
-        """Close the window"""
-        self.db.log_action("app_closed", {"timestamp": datetime.now().isoformat()})
-        try:
-            self.page.window.close()
-        except (AttributeError, TypeError):
-            # If close is not supported, try alternative
-            try:
-                import sys
-                sys.exit()
-            except:
-                pass
-    
     def on_search(self, e):
         """Handle search submission"""
         query = e.control.value
