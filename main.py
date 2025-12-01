@@ -823,17 +823,18 @@ class MainApp:
                                 ft.Container(
                                     content=ft.Row(
                                         controls=[data_table],
-                                        scroll=ft.ScrollMode.AUTO
+                                        scroll=ft.ScrollMode.AUTO,
+                                        expand=True
                                     ),
                                     padding=ft.padding.all(10),
-                                    expand=True
+                                    expand=True,
+                                    clip_behavior=ft.ClipBehavior.HARD_EDGE
                                 )
                             ],
                             scroll=ft.ScrollMode.AUTO,
                             expand=True
                         ),
-                        expand=True,
-                        clip_behavior=ft.ClipBehavior.HARD_EDGE
+                        expand=True
                     )
                 ],
                 spacing=10,
