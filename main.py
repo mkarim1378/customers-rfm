@@ -713,6 +713,22 @@ class MainApp:
         if self.excel_df is None or len(self.excel_df) == 0:
             return
         
+        # Calculate unique values in first column
+        first_col = self.excel_df.columns[0]
+        unique_count = self.excel_df[first_col].nunique()
+        
+        # Calculate count of "1" values in each column
+        column_one_counts = {}
+        for col in self.excel_df.columns:
+            # Count values that are exactly "1" or 1
+            count = 0
+            for val in self.excel_df[col]:
+                if pd.notna(val):
+                    val_str = str(val).strip()
+                    if val_str == "1" or val_str == "1.0":
+                        count += 1
+            column_one_counts[col] = count
+        
         # Create filter controls for each column
         filter_controls = []
         column_filters = {}
@@ -744,7 +760,7 @@ class MainApp:
             cells = [ft.DataCell(ft.Text(str(val)[:50] if pd.notna(val) else "")) for val in row]
             data_rows.append(ft.DataRow(cells=cells))
         
-        # Create sortable column headers
+        # Create sortable column headers with count of "1" values
         column_headers = []
         for col in self.excel_df.columns:
             sort_btn = ft.IconButton(
@@ -753,11 +769,13 @@ class MainApp:
                 tooltip=f"Sort {col}",
                 on_click=lambda e, col=col: self.sort_column(e, col)
             )
+            one_count = column_one_counts.get(col, 0)
             column_headers.append(
                 ft.DataColumn(
                     label=ft.Row(
                         controls=[
                             ft.Text(col, size=12, weight=ft.FontWeight.W_500),
+                            ft.Text(f"({one_count})", size=10, color="#666666"),
                             sort_btn
                         ],
                         spacing=5
@@ -779,11 +797,23 @@ class MainApp:
         table_container = ft.Container(
             content=ft.Column(
                 controls=[
-                    ft.Text(
-                        f"Showing {len(self.filtered_df)} rows",
-                        size=14,
-                        weight=ft.FontWeight.W_500,
-                        color="#666666"
+                    ft.Row(
+                        controls=[
+                            ft.Text(
+                                f"تعداد ردیف‌های با شماره یکتا: {unique_count}",
+                                size=14,
+                                weight=ft.FontWeight.W_500,
+                                color="#2196F3"
+                            ),
+                            ft.Container(expand=True),
+                            ft.Text(
+                                f"نمایش {len(self.filtered_df)} ردیف",
+                                size=14,
+                                weight=ft.FontWeight.W_500,
+                                color="#666666"
+                            )
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                     ),
                     ft.Container(
                         content=data_table,
