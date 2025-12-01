@@ -729,40 +729,42 @@ class MainApp:
                         count += 1
             column_one_counts[col] = count
         
-        # Create filter controls for each column
+        # Create filter controls for each column (three-state switches)
         filter_controls = []
-        column_filters = {}
         
         for col in self.excel_df.columns:
-            filter_text = ft.TextField(
-                hint_text=f"Filter {col}",
-                width=150,
-                height=40,
-                on_change=lambda e, col=col: self.apply_column_filter(col, e.control.value)
-            )
-            column_filters[col] = filter_text
+            filter_switch = self.create_three_state_filter(col)
             filter_controls.append(
                 ft.Container(
                     content=ft.Column(
                         controls=[
                             ft.Text(col, size=12, weight=ft.FontWeight.W_500),
-                            filter_text
+                            filter_switch
                         ],
-                        spacing=5
+                        spacing=5,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER
                     ),
                     padding=ft.padding.all(5)
                 )
             )
         
-        # Create data table
+        # Determine which columns to show (hide columns with filter state 0 or 1)
+        visible_columns = []
+        for col in self.excel_df.columns:
+            filter_state = self.column_filter_states.get(col, None)
+            # Show column only if filter is None (all values)
+            if filter_state is None:
+                visible_columns.append(col)
+        
+        # Create data table with only visible columns
         data_rows = []
         for idx, row in self.filtered_df.iterrows():
-            cells = [ft.DataCell(ft.Text(str(val)[:50] if pd.notna(val) else "")) for val in row]
+            cells = [ft.DataCell(ft.Text(str(row[col])[:50] if pd.notna(row[col]) else "")) for col in visible_columns]
             data_rows.append(ft.DataRow(cells=cells))
         
-        # Create sortable column headers with count of "1" values
+        # Create sortable column headers with count of "1" values (only for visible columns)
         column_headers = []
-        for col in self.excel_df.columns:
+        for col in visible_columns:
             sort_btn = ft.IconButton(
                 icon="sort",
                 icon_size=16,
@@ -816,13 +818,27 @@ class MainApp:
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                     ),
                     ft.Container(
-                        content=data_table,
+                        content=ft.Column(
+                            controls=[
+                                ft.Container(
+                                    content=ft.Row(
+                                        controls=[data_table],
+                                        scroll=ft.ScrollMode.AUTO
+                                    ),
+                                    padding=ft.padding.all(10),
+                                    expand=True
+                                )
+                            ],
+                            scroll=ft.ScrollMode.AUTO,
+                            expand=True
+                        ),
                         expand=True,
-                        padding=ft.padding.all(10)
+                        clip_behavior=ft.ClipBehavior.HARD_EDGE
                     )
                 ],
                 spacing=10,
-                expand=True
+                expand=True,
+                scroll=ft.ScrollMode.AUTO
             ),
             expand=True,
             border=ft.border.all(1, "#E0E0E0"),
@@ -930,6 +946,73 @@ class MainApp:
         """Hide loading indicator"""
         # The indicator will be replaced when display_excel_table is called
         pass
+    
+    def create_three_state_filter(self, column: str):
+        """Create a three-state filter switch for a column"""
+        # Initialize filter state if not exists
+        if column not in self.column_filter_states:
+            self.column_filter_states[column] = None  # None = all, True = only 1, False = only empty
+        
+        current_state = self.column_filter_states[column]
+        
+        # Create three buttons for the three states
+        left_btn = ft.IconButton(
+            icon="radio_button_unchecked" if current_state != False else "radio_button_checked",
+            icon_color="#666666" if current_state != False else "#2196F3",
+            tooltip="فقط مقادیر خالی",
+            on_click=lambda e, col=column: self.set_filter_state(col, False)
+        )
+        
+        middle_btn = ft.IconButton(
+            icon="radio_button_unchecked" if current_state != None else "radio_button_checked",
+            icon_color="#666666" if current_state != None else "#2196F3",
+            tooltip="همه مقادیر",
+            on_click=lambda e, col=column: self.set_filter_state(col, None)
+        )
+        
+        right_btn = ft.IconButton(
+            icon="radio_button_unchecked" if current_state != True else "radio_button_checked",
+            icon_color="#666666" if current_state != True else "#2196F3",
+            tooltip="فقط مقادیر 1",
+            on_click=lambda e, col=column: self.set_filter_state(col, True)
+        )
+        
+        return ft.Row(
+            controls=[left_btn, middle_btn, right_btn],
+            spacing=0,
+            alignment=ft.MainAxisAlignment.CENTER
+        )
+    
+    def set_filter_state(self, column: str, state):
+        """Set filter state for a column and apply filters"""
+        self.column_filter_states[column] = state
+        self.apply_filters()
+    
+    def apply_filters(self):
+        """Apply all column filters"""
+        if self.excel_df is None:
+            return
+        
+        self.filtered_df = self.excel_df.copy()
+        
+        # Apply each column filter
+        for col, state in self.column_filter_states.items():
+            if state is None:
+                # Show all values - no filtering
+                continue
+            elif state is True:
+                # Show only "1" values
+                mask = self.filtered_df[col].apply(
+                    lambda x: pd.notna(x) and (str(x).strip() == "1" or str(x).strip() == "1.0")
+                )
+                self.filtered_df = self.filtered_df[mask]
+            elif state is False:
+                # Show only empty values
+                mask = self.filtered_df[col].isna() | (self.filtered_df[col].astype(str).str.strip() == "")
+                self.filtered_df = self.filtered_df[mask]
+        
+        # Refresh table display
+        self.display_excel_table()
     
     def open_upload_popup(self):
         """Open upload popup"""
