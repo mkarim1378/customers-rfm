@@ -35,6 +35,7 @@ class MainApp:
         self.excel_df = None
         self.filtered_df = None
         self.column_sort_states = {}  # Track sort state for each column
+        self.column_filter_states = {}  # Track filter state for each column (None: all, True: only 1, False: only empty)
         
         # Initialize file picker
         self.file_picker = ft.FilePicker(
@@ -681,6 +682,10 @@ class MainApp:
     def load_excel_file(self, file_path: str):
         """Load Excel file and display in table"""
         try:
+            # Show loading indicator
+            self.show_loading_indicator()
+            self.page.update()
+            
             # Read Excel file
             self.excel_df = pd.read_excel(file_path)
             self.filtered_df = self.excel_df.copy()
@@ -691,10 +696,15 @@ class MainApp:
             # Close upload popup
             self.close_upload_popup()
             
+            # Hide loading indicator
+            self.hide_loading_indicator()
+            
             # Display table in main content
             self.display_excel_table()
             
         except Exception as e:
+            # Hide loading indicator on error
+            self.hide_loading_indicator()
             # Show error message
             self.show_error_message(f"Error loading file: {str(e)}")
     
@@ -858,6 +868,38 @@ class MainApp:
         """Show error message to user"""
         # Simple error display - can be improved with a proper dialog
         print(f"Error: {message}")
+    
+    def show_loading_indicator(self):
+        """Show loading indicator in main content area"""
+        self.main_content_area.content = ft.Column(
+            controls=[
+                ft.Container(
+                    content=ft.Column(
+                        controls=[
+                            ft.ProgressRing(width=50, height=50, stroke_width=3),
+                            ft.Text(
+                                "در حال پردازش فایل اکسل... لطفاً صبر کنید",
+                                size=16,
+                                weight=ft.FontWeight.W_500,
+                                color="#666666"
+                            )
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=20
+                    ),
+                    alignment=ft.alignment.center,
+                    expand=True
+                )
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True
+        )
+    
+    def hide_loading_indicator(self):
+        """Hide loading indicator"""
+        # The indicator will be replaced when display_excel_table is called
+        pass
     
     def open_upload_popup(self):
         """Open upload popup"""
