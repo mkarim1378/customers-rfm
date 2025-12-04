@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 target_sales_experts = ['بابایی', 'احمدی', 'هارونی', 'محمدی']
 
@@ -73,7 +74,7 @@ print("Phone number cleaning completed.")
 df.dropna(subset=['numberr'], inplace=True)
 df['__original_order'] = df.index
 
-product_cols = ['chini', 'dakheli', 'zaban', 'book', 'carman', 'azmoon', 'ghabooli', 'garage', 'hoz', 'kia', 'milyarder', 'gds','tpms-tuts','zed', 'kmc', 'carmap', 'escl']
+product_cols = ['chini', 'dakheli', 'zaban', 'book', 'carman', 'azmoon', 'ghabooli', 'garage', 'hoz', 'kia', 'milyarder', 'gds-tuts','gds','tpms-tuts','zed', 'kmc', 'carmap', 'escl']
 
 # Normalize product columns to 0/1 before aggregation to ensure proper merging
 for col in product_cols:
@@ -81,13 +82,56 @@ for col in product_cols:
         numeric_col = pd.to_numeric(df[col], errors='coerce').fillna(0)
         df[col] = (numeric_col > 0).astype(int)
 
-# Compute preferred name per number: prefer names without digits, then earliest appearance
-df['__name_no_digit'] = ~df['name'].astype(str).str.contains(r'\d')
+# Helper function to check if a name is valid (not empty, not "بدون نام", not NaN, and no digits)
+def is_valid_name(name):
+    if pd.isna(name):
+        return False
+    name_str = str(name).strip()
+    if not name_str or name_str == '':
+        return False
+    # Check for common "no name" patterns
+    invalid_patterns = ['بدون نام', 'بدوننام', 'نام ندارد', 'نام ندارد', 'nan', 'None', 'null']
+    name_lower = name_str.lower()
+    for pattern in invalid_patterns:
+        if pattern.lower() in name_lower:
+            return False
+    # Check if name contains digits - if it does, it's not valid
+    if re.search(r'\d', name_str):
+        return False
+    return True
+
+# Compute preferred name per number: 
+# 1. Prefer valid names (not empty, not "بدون نام", no digits)
+# 2. Then prefer earliest appearance
+df['__is_valid_name'] = df['name'].apply(is_valid_name)
+
+# Create name preference map
 name_pref_map = (
-    df.sort_values(['numberr', '__name_no_digit', '__original_order'], ascending=[True, False, True])
+    df.sort_values(['numberr', '__is_valid_name', '__original_order'], 
+                   ascending=[True, False, True])
       .drop_duplicates('numberr', keep='first')
       .set_index('numberr')['name']
 )
+
+# For numbers that still have invalid names, try to find any valid name from other rows with same number
+def get_best_name_for_number(number, df_subset):
+    # Get all names for this number
+    names = df_subset[df_subset['numberr'] == number]['name'].dropna()
+    valid_names = [name for name in names if is_valid_name(name)]
+    
+    # Since is_valid_name already checks for digits, all valid_names are without digits
+    if valid_names:
+        return valid_names[0]
+    return None
+
+# Update name_pref_map for numbers with invalid names
+for number in name_pref_map.index:
+    current_name = name_pref_map[number]
+    if not is_valid_name(current_name):
+        # Try to find a valid name from all rows with this number
+        better_name = get_best_name_for_number(number, df)
+        if better_name and is_valid_name(better_name):
+            name_pref_map[number] = better_name
 
 aggregation_logic = {
     'name': 'first',
@@ -103,6 +147,7 @@ aggregation_logic = {
     'hoz': 'max',
     'kia': 'max',
     'milyarder': 'max',
+    'gds-tuts': 'max',
     'gds': 'max',
     'tpms-tuts': 'max',
     'zed': 'max',
@@ -134,8 +179,45 @@ final_df['sp'] = final_df['numberr'].map(first_sp_map)
 # Ensure name uses the preferred mapping (no digits if available)
 final_df['name'] = final_df['numberr'].map(name_pref_map)
 
+# Final check: if any name is still invalid, try to find from original dataframe
+print("Filling missing or invalid names from other rows with same number...")
+def fill_missing_names(row):
+    name = row['name']
+    number = row['numberr']
+    
+    # If name is invalid, search in original dataframe
+    if not is_valid_name(name):
+        # Get all rows with same number from original dataframe
+        same_number_rows = df[df['numberr'] == number]
+        valid_names = same_number_rows['name'].apply(is_valid_name)
+        valid_name_rows = same_number_rows[valid_names]
+        
+        if not valid_name_rows.empty:
+            # Since is_valid_name already checks for digits, all valid_name_rows are without digits
+            return valid_name_rows.iloc[0]['name']
+    
+    return name
+
+# Count invalid names before filling
+invalid_before = final_df['name'].apply(lambda x: not is_valid_name(x)).sum()
+final_df['name'] = final_df.apply(fill_missing_names, axis=1)
+# Count invalid names after filling
+invalid_after = final_df['name'].apply(lambda x: not is_valid_name(x)).sum()
+filled_count = invalid_before - invalid_after
+
+if filled_count > 0:
+    print(f"Filled {filled_count} missing/invalid names from other rows with same number.")
+else:
+    print("All names are valid or no replacements found.")
+
 print("Updating 'hichi' column based on new logic...")
-final_df['hichi'] = (final_df[product_cols].fillna(0).sum(axis=1) == 0).astype(int)
+# Only use product columns that actually exist in final_df
+available_product_cols = [col for col in product_cols if col in final_df.columns]
+if available_product_cols:
+    final_df['hichi'] = (final_df[available_product_cols].fillna(0).sum(axis=1) == 0).astype(int)
+else:
+    # If no product columns available, set all to 0 (no products)
+    final_df['hichi'] = 0
 print("'hichi' column calculation completed.")
 
 # Build human-readable products list based on purchased product flags
@@ -148,7 +230,8 @@ product_name_map = {
 	'hoz': 'دوره حضوری',
 	'kia': 'دوره آنلاین کره ای',
 	'milyarder': 'دوره تعمیرکار میلیاردر',
-	'gds': 'دوره GDS',
+	'gds-tuts': 'دوره GDS',
+    'gds': 'نرم افزار GDS',
 	'tpms-tuts': 'دوره TPMS',
 	'zed': 'دوره ضد سرقت',
 	'kmc': 'وبینار KMC',
