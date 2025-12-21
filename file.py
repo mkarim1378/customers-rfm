@@ -74,7 +74,7 @@ print("Phone number cleaning completed.")
 df.dropna(subset=['numberr'], inplace=True)
 df['__original_order'] = df.index
 
-product_cols = ['chini', 'dakheli', 'zaban', 'book', 'carman', 'azmoon', 'ghabooli', 'garage', 'hoz', 'kia', 'milyarder', 'gds-tuts','gds','tpms-tuts','zed', 'kmc', 'carmap', 'escl']
+product_cols = ['chini', 'dakheli', 'zaban', 'book', 'device', 'azmoon', 'ghabooli', 'garage', 'hoz', 'kia', 'milyarder', 'gds-tuts','gds','tpms-tuts','zed', 'kmc', 'carmap', 'escl']
 
 # Normalize product columns to 0/1 before aggregation to ensure proper merging
 for col in product_cols:
@@ -140,7 +140,7 @@ aggregation_logic = {
     'dakheli': 'max',
     'zaban': 'max',
     'book': 'max',
-    'carman': 'max',
+    'device': 'max',
     'azmoon': 'max',
     'ghabooli': 'max',
     'garage': 'max',
@@ -226,7 +226,7 @@ product_name_map = {
 	'dakheli': 'دوره آنلاین داخلی',
 	'zaban': 'دوره زبان فنی',
 	'book': 'کتاب زبان فنی',
-	'carman': 'دستگاه دیاگ',
+	'device': 'تجهیزات',
 	'hoz': 'دوره حضوری',
 	'kia': 'دوره آنلاین کره ای',
 	'milyarder': 'دوره تعمیرکار میلیاردر',
